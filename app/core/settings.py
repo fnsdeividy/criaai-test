@@ -120,6 +120,13 @@ class Settings(BaseSettings):
         description="Origens adicionais para desenvolvimento (separadas por vírgula)"
     )
     
+    # Origens adicionais para desenvolvimento (separadas por vírgula)
+    additional_dev_origins: str = Field(
+        default="http://localhost:8081",
+        env="ADDITIONAL_DEV_ORIGINS",
+        description="Origens adicionais para desenvolvimento (separadas por vírgula)"
+    )
+    
     rate_limit_requests: int = Field(
         default=100,
         env="RATE_LIMIT_REQUESTS",
@@ -167,6 +174,7 @@ class Settings(BaseSettings):
     @property
     def all_allowed_origins(self) -> list[str]:
         """Retorna todas as origens permitidas, incluindo as adicionais de desenvolvimento."""
+<<<<<<< HEAD
         import json
         try:
             # Parse JSON string para lista
@@ -176,6 +184,9 @@ class Settings(BaseSettings):
             origins = ["http://localhost:3000", "http://localhost:8080"]
         
         # Adicionar origens adicionais de desenvolvimento
+=======
+        origins = self.allowed_origins.copy()
+>>>>>>> 7ddce43 (feat: enhance CORS and environment configuration)
         if self.additional_dev_origins:
             additional = [origin.strip() for origin in self.additional_dev_origins.split(",") if origin.strip()]
             origins.extend(additional)
