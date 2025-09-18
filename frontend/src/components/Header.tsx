@@ -5,13 +5,13 @@ const Header = () => {
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <div className="text-3xl font-bebas text-gradient">
-              DF.AI
+              PDF.AI
             </div>
             <div className="hidden md:block text-foreground-secondary font-lato">
               Processamento Inteligente de PDFs Jurídicos
             </div>
           </div>
-          
+
           <div className="flex items-center space-x-6 text-sm text-foreground-muted">
             <div className="flex items-center space-x-2">
               <div className="w-2 h-2 bg-accent-orange rounded-full animate-pulse"></div>

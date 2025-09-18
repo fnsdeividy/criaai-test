@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -12,129 +12,243 @@ import {
   FileText,
   Brain,
   Loader2,
-  AlertCircle
+  AlertCircle,
+  CheckCircle,
+  XCircle
 } from "lucide-react";
 
+// Importações seguras
+import { apiClient } from "@/services/apiClient";
+import { validateUrl, validateFile, generateSecureCaseId, sanitizeString } from "@/utils/security";
+import { APP_CONFIG, UPLOAD_CONFIG } from "@/config/app";
+import type { ProcessData, ProcessingState, UploadProgress } from "@/types/api";
+
+interface ProcessorState {
+  pdfUrl: string;
+  selectedFile: File | null;
+  result: ProcessData | null;
+  activeTab: "url" | "upload";
+  processingState: ProcessingState;
+  uploadProgress: number;
+  validationErrors: string[];
+}
+
 const PDFProcessor = () => {
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [pdfUrl, setPdfUrl] = useState("");
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [result, setResult] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState("url");
+  const [state, setState] = useState<ProcessorState>({
+    pdfUrl: "",
+    selectedFile: null,
+    result: null,
+    activeTab: "url",
+    processingState: "idle",
+    uploadProgress: 0,
+    validationErrors: [],
+  });
+
   const { toast } = useToast();
   const resultRef = useRef<HTMLDivElement>(null);
 
-  // API Configuration
-  const API_BASE_URL = "http://localhost:8000";
-
-  // Scroll automático para o resultado quando ele aparecer
-  useEffect(() => {
-    if (result && resultRef.current) {
-      // Aguardar um pouco para garantir que o DOM foi atualizado
+  // Scroll automático seguro para o resultado
+  const scrollToResult = useCallback(() => {
+    if (state.result && resultRef.current) {
       setTimeout(() => {
-        // Scroll suave para o resultado com offset para melhor visualização
-        const elementPosition = resultRef.current.getBoundingClientRect().top + window.pageYOffset;
-        const offsetPosition = elementPosition - 80; // 80px de offset do topo
+        const element = resultRef.current;
+        if (element) {
+          const elementPosition = element.getBoundingClientRect().top + window.pageYOffset;
+          const offsetPosition = elementPosition - 80;
 
-        window.scrollTo({
-          top: offsetPosition,
-          behavior: 'smooth'
-        });
+          window.scrollTo({
+            top: offsetPosition,
+            behavior: 'smooth'
+          });
 
-        // Feedback visual adicional
-        toast({
-          title: "✨ Análise concluída!",
-          description: "Role para baixo para ver os resultados detalhados.",
-          duration: 4000,
-        });
-      }, 500); // 500ms de delay para garantir que as animações terminem
+          toast({
+            title: "✨ Análise concluída!",
+            description: "Role para baixo para ver os resultados detalhados.",
+            duration: 4000,
+          });
+        }
+      }, 500);
     }
-  }, [result, toast]);
+  }, [state.result, toast]);
 
-  const handleProcess = async () => {
+  useEffect(() => {
+    if (state.result) {
+      scrollToResult();
+    }
+  }, [state.result, scrollToResult]);
+
+  // Validação em tempo real da URL
+  const handleUrlChange = useCallback((url: string) => {
+    const sanitizedUrl = sanitizeString(url);
+    const validation = validateUrl(sanitizedUrl);
+
+    setState(prev => ({
+      ...prev,
+      pdfUrl: sanitizedUrl,
+      selectedFile: null,
+      validationErrors: validation.errors,
+    }));
+  }, []);
+
+  // Validação e seleção de arquivo
+  const handleFileSelect = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+
+    if (!file) {
+      setState(prev => ({
+        ...prev,
+        selectedFile: null,
+        validationErrors: [],
+      }));
+      return;
+    }
+
+    const validation = validateFile(file);
+
+    if (validation.isValid) {
+      setState(prev => ({
+        ...prev,
+        selectedFile: file,
+        pdfUrl: "",
+        validationErrors: [],
+      }));
+
+      if (validation.warnings.length > 0) {
+        toast({
+          title: "Aviso",
+          description: validation.warnings.join(", "),
+          variant: "default"
+        });
+      }
+    } else {
+      setState(prev => ({
+        ...prev,
+        selectedFile: null,
+        validationErrors: validation.errors,
+      }));
+
+      toast({
+        title: "Arquivo inválido",
+        description: validation.errors[0],
+        variant: "destructive"
+      });
+    }
+
+    // Limpar o input para permitir reselecionar o mesmo arquivo
+    event.target.value = "";
+  }, [toast]);
+
+  // Processamento principal
+  const handleProcess = useCallback(async () => {
+    const { pdfUrl, selectedFile, activeTab } = state;
+
+    // Validação inicial
     if (!pdfUrl && !selectedFile) {
       toast({
-        title: "Erro",
+        title: "Erro de validação",
         description: "Por favor, forneça uma URL ou selecione um arquivo PDF.",
         variant: "destructive"
       });
       return;
     }
 
-    setIsProcessing(true);
+    setState(prev => ({ ...prev, processingState: "validating" }));
 
     try {
-      let response;
+      // Gerar case_id seguro
+      const caseId = generateSecureCaseId();
 
       if (activeTab === "url" && pdfUrl) {
         // Processar via URL
-        const requestData = {
+        const urlValidation = validateUrl(pdfUrl);
+        if (!urlValidation.isValid) {
+          throw new Error(urlValidation.errors[0]);
+        }
+
+        setState(prev => ({ ...prev, processingState: "processing" }));
+
+        const response = await apiClient.extractFromUrl({
           pdf_url: pdfUrl,
-          case_id: `case_${Date.now()}`
-        };
-
-        response = await fetch(`${API_BASE_URL}/extract`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(requestData)
+          case_id: caseId
         });
+
+        if (response.error) {
+          throw new Error(response.error.detail);
+        }
+
+        setState(prev => ({
+          ...prev,
+          result: response.data!,
+          processingState: "completed"
+        }));
+
       } else if (activeTab === "upload" && selectedFile) {
-        // Processar via upload de arquivo
-        const formData = new FormData();
-        formData.append("file", selectedFile);
-        formData.append("case_id", `case_${Date.now()}`);
+        // Processar via upload
+        const fileValidation = validateFile(selectedFile);
+        if (!fileValidation.isValid) {
+          throw new Error(fileValidation.errors[0]);
+        }
 
-        response = await fetch(`${API_BASE_URL}/upload`, {
-          method: "POST",
-          body: formData
-        });
+        setState(prev => ({ ...prev, processingState: "uploading" }));
+
+        const response = await apiClient.extractFromUpload(
+          {
+            file: selectedFile,
+            case_id: caseId
+          },
+          (progress) => {
+            setState(prev => ({ ...prev, uploadProgress: progress }));
+          }
+        );
+
+        if (response.error) {
+          throw new Error(response.error.detail);
+        }
+
+        setState(prev => ({
+          ...prev,
+          result: response.data!,
+          processingState: "completed",
+          uploadProgress: 100
+        }));
       }
-
-      if (!response) {
-        throw new Error("Nenhuma resposta da API");
-      }
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || "Erro no processamento");
-      }
-
-      const data = await response.json();
-      setResult(data);
 
       toast({
         title: "Processamento concluído!",
         description: "O PDF foi analisado com sucesso.",
       });
 
-    } catch (error: any) {
+    } catch (error) {
       console.error("Erro no processamento:", error);
+
+      setState(prev => ({ ...prev, processingState: "error" }));
+
       toast({
         title: "Erro no processamento",
-        description: error.message || "Falha ao processar o PDF. Verifique se a API está rodando.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file && file.type === 'application/pdf') {
-      setSelectedFile(file);
-      setPdfUrl("");
-    } else {
-      toast({
-        title: "Arquivo inválido",
-        description: "Por favor, selecione apenas arquivos PDF.",
+        description: error instanceof Error ? error.message : "Falha ao processar o PDF.",
         variant: "destructive"
       });
     }
-  };
+  }, [state, toast]);
 
+  // Resetar estado
+  const handleReset = useCallback(() => {
+    setState({
+      pdfUrl: "",
+      selectedFile: null,
+      result: null,
+      activeTab: "url",
+      processingState: "idle",
+      uploadProgress: 0,
+      validationErrors: [],
+    });
+  }, []);
+
+  // Estados derivados
+  const isProcessing = ["validating", "uploading", "processing"].includes(state.processingState);
+  const canProcess = (state.pdfUrl && state.activeTab === "url") ||
+    (state.selectedFile && state.activeTab === "upload");
+  const hasValidationErrors = state.validationErrors.length > 0;
 
   return (
     <div className="container mx-auto px-6 py-12 max-w-7xl">
@@ -158,7 +272,17 @@ const PDFProcessor = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
-              <Tabs value={activeTab} onValueChange={setActiveTab}>
+              <Tabs
+                value={state.activeTab}
+                onValueChange={(value) =>
+                  setState(prev => ({
+                    ...prev,
+                    activeTab: value as "url" | "upload",
+                    validationErrors: [],
+                    result: null
+                  }))
+                }
+              >
                 <TabsList className="grid w-full grid-cols-2 bg-surface">
                   <TabsTrigger value="url" className="data-[state=active]:bg-primary data-[state=active]:text-white">
                     <Link className="w-4 h-4 mr-2" />
@@ -178,32 +302,57 @@ const PDFProcessor = () => {
                     <Input
                       id="pdf-url"
                       placeholder="https://processo.tjsp.jus.br/documento/12345"
-                      value={pdfUrl}
-                      onChange={(e) => {
-                        setPdfUrl(e.target.value);
-                        setSelectedFile(null);
-                      }}
-                      className="mt-2 bg-surface border-border text-foreground"
+                      value={state.pdfUrl}
+                      onChange={(e) => handleUrlChange(e.target.value)}
+                      className={`mt-2 bg-surface border-border text-foreground ${hasValidationErrors && state.activeTab === "url" ? "border-destructive" : ""
+                        }`}
+                      disabled={isProcessing}
                     />
+                    {hasValidationErrors && state.activeTab === "url" && (
+                      <div className="mt-2 text-sm text-destructive flex items-center">
+                        <XCircle className="w-4 h-4 mr-1" />
+                        {state.validationErrors[0]}
+                      </div>
+                    )}
                   </div>
                 </TabsContent>
 
                 <TabsContent value="upload" className="space-y-4">
                   <div>
                     <Label htmlFor="pdf-file" className="text-foreground font-lato">
-                      Arquivo PDF
+                      Arquivo PDF (máx. {UPLOAD_CONFIG.MAX_FILE_SIZE / (1024 * 1024)}MB)
                     </Label>
                     <div className="mt-2 flex items-center justify-center w-full">
                       <label
                         htmlFor="pdf-file"
-                        className="flex flex-col items-center justify-center w-full h-32 border-2 border-border border-dashed rounded-xl cursor-pointer bg-surface hover:bg-surface-elevated transition-colors duration-300"
+                        className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-xl cursor-pointer transition-colors duration-300 ${isProcessing ? "opacity-50 cursor-not-allowed" : "hover:bg-surface-elevated"
+                          } ${hasValidationErrors && state.activeTab === "upload"
+                            ? "border-destructive bg-destructive/5"
+                            : "border-border bg-surface"
+                          }`}
                       >
                         <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                          <Upload className="w-8 h-8 mb-4 text-foreground-muted" />
+                          {state.processingState === "uploading" ? (
+                            <Loader2 className="w-8 h-8 mb-4 text-primary animate-spin" />
+                          ) : hasValidationErrors && state.activeTab === "upload" ? (
+                            <XCircle className="w-8 h-8 mb-4 text-destructive" />
+                          ) : state.selectedFile ? (
+                            <CheckCircle className="w-8 h-8 mb-4 text-green-500" />
+                          ) : (
+                            <Upload className="w-8 h-8 mb-4 text-foreground-muted" />
+                          )}
                           <p className="mb-2 text-sm text-foreground-muted font-lato">
-                            <span className="font-semibold">Clique para enviar</span> ou arraste o arquivo
+                            {state.processingState === "uploading" ? (
+                              <span>Enviando... {state.uploadProgress}%</span>
+                            ) : (
+                              <span>
+                                <span className="font-semibold">Clique para enviar</span> ou arraste o arquivo
+                              </span>
+                            )}
                           </p>
-                          <p className="text-xs text-foreground-muted">PDF (MAX. 14MB)</p>
+                          <p className="text-xs text-foreground-muted">
+                            PDF (MAX. {UPLOAD_CONFIG.MAX_FILE_SIZE / (1024 * 1024)}MB)
+                          </p>
                         </div>
                         <input
                           id="pdf-file"
@@ -211,36 +360,74 @@ const PDFProcessor = () => {
                           className="hidden"
                           accept=".pdf"
                           onChange={handleFileSelect}
+                          disabled={isProcessing}
                         />
                       </label>
                     </div>
-                    {selectedFile && (
+
+                    {state.selectedFile && (
                       <div className="flex items-center space-x-2 mt-2 p-3 bg-surface-elevated rounded-lg">
                         <FileText className="w-5 h-5 text-accent-orange" />
-                        <span className="text-sm text-foreground font-lato">{selectedFile.name}</span>
+                        <span className="text-sm text-foreground font-lato">
+                          {state.selectedFile.name}
+                        </span>
+                        <span className="text-xs text-foreground-muted ml-auto">
+                          {(state.selectedFile.size / (1024 * 1024)).toFixed(2)}MB
+                        </span>
+                      </div>
+                    )}
+
+                    {hasValidationErrors && state.activeTab === "upload" && (
+                      <div className="mt-2 text-sm text-destructive flex items-center">
+                        <XCircle className="w-4 h-4 mr-1" />
+                        {state.validationErrors[0]}
                       </div>
                     )}
                   </div>
                 </TabsContent>
               </Tabs>
 
-              <Button
-                onClick={handleProcess}
-                disabled={isProcessing}
-                className="btn-hero w-full"
-              >
-                {isProcessing ? (
-                  <>
-                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                    {activeTab === "upload" ? "Enviando e processando..." : "Baixando e processando..."}
-                  </>
-                ) : (
-                  <>
-                    <Brain className="w-5 h-5 mr-2" />
-                    {activeTab === "upload" ? "Enviar e Analisar com IA" : "Analisar com Google Gemini"}
-                  </>
+              {/* Progress bar para upload */}
+              {state.processingState === "uploading" && (
+                <div className="w-full bg-surface-elevated rounded-full h-2">
+                  <div
+                    className="bg-primary h-2 rounded-full transition-all duration-300"
+                    style={{ width: `${state.uploadProgress}%` }}
+                  />
+                </div>
+              )}
+
+              <div className="flex space-x-2">
+                <Button
+                  onClick={handleProcess}
+                  disabled={isProcessing || !canProcess || hasValidationErrors}
+                  className="btn-hero flex-1"
+                >
+                  {isProcessing ? (
+                    <>
+                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                      {state.processingState === "validating" && "Validando..."}
+                      {state.processingState === "uploading" && "Enviando..."}
+                      {state.processingState === "processing" && "Processando..."}
+                    </>
+                  ) : (
+                    <>
+                      <Brain className="w-5 h-5 mr-2" />
+                      {state.activeTab === "upload" ? "Enviar e Analisar" : "Analisar com IA"}
+                    </>
+                  )}
+                </Button>
+
+                {(state.result || isProcessing) && (
+                  <Button
+                    onClick={handleReset}
+                    variant="outline"
+                    disabled={isProcessing}
+                  >
+                    Novo
+                  </Button>
                 )}
-              </Button>
+              </div>
             </CardContent>
           </Card>
 
@@ -272,7 +459,7 @@ const PDFProcessor = () => {
             </p>
           </div>
 
-          {!result && !isProcessing && (
+          {state.processingState === "idle" && !state.result && (
             <Card className="card-legal">
               <CardContent className="flex flex-col items-center justify-center p-12 text-center">
                 <AlertCircle className="w-16 h-16 text-foreground-muted mb-4" />
@@ -291,16 +478,37 @@ const PDFProcessor = () => {
               <CardContent className="flex flex-col items-center justify-center p-12 text-center">
                 <Loader2 className="w-16 h-16 text-accent-orange animate-spin mb-4" />
                 <h3 className="text-xl font-montserrat font-semibold text-foreground mb-2">
-                  Processando documento...
+                  {state.processingState === "validating" && "Validando documento..."}
+                  {state.processingState === "uploading" && "Enviando arquivo..."}
+                  {state.processingState === "processing" && "Processando com IA..."}
                 </h3>
                 <p className="text-foreground-secondary font-lato">
-                  A IA está analisando o PDF e extraindo informações
+                  {state.processingState === "uploading" && `${state.uploadProgress}% concluído`}
+                  {state.processingState === "processing" && "A IA está analisando o PDF"}
+                  {state.processingState === "validating" && "Verificando arquivo e configurações"}
                 </p>
               </CardContent>
             </Card>
           )}
 
-          {result && (
+          {state.processingState === "error" && (
+            <Card className="card-legal border-destructive">
+              <CardContent className="flex flex-col items-center justify-center p-12 text-center">
+                <XCircle className="w-16 h-16 text-destructive mb-4" />
+                <h3 className="text-xl font-montserrat font-semibold text-foreground mb-2">
+                  Erro no processamento
+                </h3>
+                <p className="text-foreground-secondary font-lato mb-4">
+                  Houve um problema ao processar o documento
+                </p>
+                <Button onClick={handleReset} variant="outline">
+                  Tentar novamente
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+
+          {state.result && state.processingState === "completed" && (
             <div
               ref={resultRef}
               className="mt-12 pt-8 border-t border-border/30 animate-fade-in"
@@ -312,7 +520,7 @@ const PDFProcessor = () => {
                 </div>
               </div>
               <div className="animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
-                <ProcessResult data={result} />
+                <ProcessResult data={state.result} />
               </div>
             </div>
           )}
