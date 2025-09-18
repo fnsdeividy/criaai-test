@@ -133,10 +133,14 @@ else:
     cors_origins = default_origins
     print(f"🔧 CORS Origins padrão: {cors_origins}")
 
+# Debug: adicionar wildcard temporário para testar
+cors_origins.append("*")
+print(f"🚨 CORS Origins final (com wildcard temporário): {cors_origins}")
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=cors_origins,
-    allow_credentials=True,  # Sempre permitir credentials com origens específicas
+    allow_credentials=False,  # Temporariamente False devido ao wildcard
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=[
         "Content-Type", 
