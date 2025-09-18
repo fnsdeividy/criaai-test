@@ -1,0 +1,231 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;800;900&family=Bebas+Neue&family=Inter:wght@400;500;600;700&family=Lato:wght@400;500;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Legal AI Landing Page Design System - Dark Tech Theme */
+
+@layer base {
+  :root {
+    /* Background & Surface Colors */
+    --background: 140 25% 6%;
+    --background-secondary: 140 20% 8%;
+    --surface: 140 15% 12%;
+    --surface-elevated: 140 12% 16%;
+    
+    /* Text Colors */
+    --foreground: 0 0% 95%;
+    --foreground-secondary: 140 8% 75%;
+    --foreground-muted: 140 8% 55%;
+
+    /* Green Brand Colors */
+    --primary: 140 90% 50%;        /* Green Primary */
+    --primary-dark: 140 85% 35%;   /* Green Dark */
+    --primary-light: 120 75% 60%;  /* Light Green */
+    --primary-foreground: 0 0% 100%;
+
+    /* Neon Accent Colors */
+    --accent-orange: 80 90% 65%;   /* Lime Green */
+    --accent-red: 100 85% 50%;     /* Green Accent */
+    --accent-foreground: 0 0% 100%;
+
+    /* Semantic Colors */
+    --secondary: 140 12% 16%;
+    --secondary-foreground: 140 8% 75%;
+    
+    --muted: 140 12% 14%;
+    --muted-foreground: 140 8% 65%;
+
+    --card: 140 15% 12%;
+    --card-foreground: 0 0% 95%;
+    
+    --border: 140 12% 20%;
+    --input: 140 12% 16%;
+    --ring: 140 90% 50%;
+
+    /* Gradients */
+    --gradient-hero: linear-gradient(135deg, 
+      hsl(140, 85%, 15%) 0%, 
+      hsl(140, 90%, 25%) 35%, 
+      hsl(120, 75%, 35%) 100%
+    );
+    
+    --gradient-card: linear-gradient(145deg, 
+      hsl(140, 15%, 12%) 0%, 
+      hsl(140, 12%, 16%) 100%
+    );
+
+    /* Shadows & Effects */
+    --shadow-neon: 0 0 20px hsl(var(--accent-orange) / 0.3);
+    --shadow-card: 0 8px 32px hsl(140, 25%, 4% / 0.6);
+    --shadow-glow: 0 0 40px hsl(var(--primary) / 0.2);
+
+    /* Radius */
+    --radius: 1rem;
+
+    --sidebar-background: 0 0% 98%;
+
+    --sidebar-foreground: 240 5.3% 26.1%;
+
+    --sidebar-primary: 240 5.9% 10%;
+
+    --sidebar-primary-foreground: 0 0% 98%;
+
+    --sidebar-accent: 240 4.8% 95.9%;
+
+    --sidebar-accent-foreground: 240 5.9% 10%;
+
+    --sidebar-border: 220 13% 91%;
+
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 210 40% 98%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 212.7 26.8% 83.9%;
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-inter;
+    background: var(--gradient-hero);
+    min-height: 100vh;
+  }
+
+  /* Typography */
+  .font-montserrat { font-family: 'Montserrat', sans-serif; }
+  .font-bebas { font-family: 'Bebas Neue', sans-serif; }
+  .font-inter { font-family: 'Inter', sans-serif; }
+  .font-lato { font-family: 'Lato', sans-serif; }
+}
+
+@layer components {
+  /* Hero Button Styles */
+  .btn-hero {
+    @apply bg-gradient-to-r from-accent-orange to-accent-red text-white font-montserrat font-bold px-8 py-4 rounded-2xl transition-all duration-300 hover:shadow-neon hover:scale-105;
+  }
+
+  .btn-secondary {
+    @apply border border-primary text-primary hover:bg-primary hover:text-white font-montserrat font-semibold px-6 py-3 rounded-2xl transition-all duration-300 hover:shadow-glow;
+  }
+
+  /* Card Styles */
+  .card-legal {
+    @apply bg-card border border-border rounded-2xl p-6 transition-all duration-300 hover:shadow-card hover:border-primary/30;
+    background: var(--gradient-card);
+  }
+
+  .card-feature {
+    @apply card-legal text-center hover:shadow-glow hover:scale-105;
+  }
+
+  /* Neon Effects */
+  .glow-orange {
+    box-shadow: 0 0 20px hsl(var(--accent-orange) / 0.4);
+  }
+
+  .glow-primary {
+    box-shadow: 0 0 20px hsl(var(--primary) / 0.4);
+  }
+
+  /* Animations */
+  .animate-float {
+    animation: float 6s ease-in-out infinite;
+  }
+
+  .animate-pulse-slow {
+    animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+}
+
+@layer utilities {
+  .text-gradient {
+    background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--accent-orange)));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .bg-hero {
+    background: var(--gradient-hero);
+  }
+
+  .shadow-neon {
+    box-shadow: var(--shadow-neon);
+  }
+
+  .shadow-card {
+    box-shadow: var(--shadow-card);
+  }
+
+  .shadow-glow {
+    box-shadow: var(--shadow-glow);
+  }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-20px); }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.6s ease-out;
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.8s ease-out;
+}
