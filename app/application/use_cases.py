@@ -96,7 +96,7 @@ class CreateProcessUseCase:
             normalized_data = self.process_service.normalize_extraction_data(extraction)
             
             # 4. Persistir dados
-            persisted_at = datetime.now(datetime.timezone.utc).replace(tzinfo=None)
+            persisted_at = datetime.now(timezone.utc).replace(tzinfo=None)
             payload = {
                 **normalized_data,
                 "persisted_at": persisted_at
