@@ -113,10 +113,24 @@ class Settings(BaseSettings):
         description="Origens permitidas para CORS"
     )
     
+    # Origens adicionais para desenvolvimento (separadas por vírgula)
+    additional_dev_origins: str = Field(
+        default="http://localhost:8081",
+        env="ADDITIONAL_DEV_ORIGINS",
+        description="Origens adicionais para desenvolvimento (separadas por vírgula)"
+    )
+    
     rate_limit_requests: int = Field(
         default=100,
         env="RATE_LIMIT_REQUESTS",
         description="Número máximo de requests por minuto"
+    )
+    
+    # CORS Configuration
+    cors_max_age: int = Field(
+        default=3600,
+        env="CORS_MAX_AGE",
+        description="Tempo em segundos para cache de preflight CORS"
     )
     
     # Logging Configuration
@@ -149,6 +163,15 @@ class Settings(BaseSettings):
         env_file = ".env"
         env_file_encoding = "utf-8"
         case_sensitive = False
+    
+    @property
+    def all_allowed_origins(self) -> list[str]:
+        """Retorna todas as origens permitidas, incluindo as adicionais de desenvolvimento."""
+        origins = self.allowed_origins.copy()
+        if self.additional_dev_origins:
+            additional = [origin.strip() for origin in self.additional_dev_origins.split(",") if origin.strip()]
+            origins.extend(additional)
+        return origins
 
 
 # Instância global das configurações

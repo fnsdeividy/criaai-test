@@ -88,11 +88,11 @@ app.middleware("http")(rate_limit_middleware)
 # Configurar CORS com restrições
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.allowed_origins + ["http://localhost:8081"],  # Incluir porta do Vite
+    allow_origins=settings.all_allowed_origins,  # Usar todas as origens configuradas
     allow_credentials=True,
     allow_methods=["GET", "POST", "OPTIONS"],  # Incluir OPTIONS para preflight
     allow_headers=["Content-Type", "Authorization", "X-Requested-With"],  # Headers necessários
-    max_age=3600,  # Cache preflight por 1 hora
+    max_age=settings.cors_max_age,  # Cache preflight configurável
 )
 
 # Registrar routers
