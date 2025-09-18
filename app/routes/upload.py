@@ -553,3 +553,232 @@ async def _process_saved_file(
         # Cleanup garantido
         if temp_file_path and temp_file_path.exists():
             _cleanup_temp_file(temp_file_path)
+
+# Upload Chunked Endpoints para arquivos grandes
+upload_sessions = {}  # Em produção, usar Redis ou banco de dados
+
+@router.post("/chunked/init")
+async def init_chunked_upload(
+    filename: str = Form(...),
+    file_size: int = Form(...),
+    case_id: str = Form(...),
+    total_chunks: int = Form(...)
+):
+    """Inicializa sessão de upload chunked."""
+    import uuid
+    
+    upload_id = str(uuid.uuid4())
+    upload_sessions[upload_id] = {
+        "filename": filename,
+        "file_size": file_size,
+        "case_id": case_id,
+        "total_chunks": total_chunks,
+        "chunks_received": [],
+        "chunks_data": {}
+    }
+    
+    return {"upload_id": upload_id}
+
+
+@router.post("/chunked/chunk")
+async def upload_chunk(
+    chunk: UploadFile = File(...),
+    upload_id: str = Form(...),
+    chunk_index: int = Form(...)
+):
+    """Recebe um chunk do arquivo."""
+    if upload_id not in upload_sessions:
+        raise HTTPException(status_code=404, detail="Sessão de upload não encontrada")
+    
+    session = upload_sessions[upload_id]
+    
+    # Ler dados do chunk
+    chunk_data = await chunk.read()
+    session["chunks_data"][chunk_index] = chunk_data
+    session["chunks_received"].append(chunk_index)
+    
+    return {"status": "chunk_received", "chunk_index": chunk_index}
+
+
+@router.post("/chunked/finalize")
+async def finalize_chunked_upload(
+    upload_id: str = Form(...),
+    use_case: CreateProcessFromUploadUseCase = Depends(get_create_process_from_upload_use_case)
+):
+    """Finaliza upload chunked e inicia processamento."""
+    if upload_id not in upload_sessions:
+        raise HTTPException(status_code=404, detail="Sessão de upload não encontrada")
+    
+    session = upload_sessions[upload_id]
+    
+    # Verificar se todos os chunks foram recebidos
+    if len(session["chunks_received"]) != session["total_chunks"]:
+        raise HTTPException(status_code=400, detail="Nem todos os chunks foram recebidos")
+    
+    # Reconstituir arquivo
+    file_data = b""
+    for i in range(session["total_chunks"]):
+        if i not in session["chunks_data"]:
+            raise HTTPException(status_code=400, detail=f"Chunk {i} não encontrado")
+        file_data += session["chunks_data"][i]
+    
+    # Criar arquivo temporário
+    import tempfile
+    import os
+    
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as temp_file:
+        temp_file.write(file_data)
+        temp_file_path = temp_file.name
+    
+    try:
+        # Simular UploadFile para compatibilidade
+        class ChunkedFile:
+            def __init__(self, file_path: str, filename: str):
+                self.file_path = file_path
+                self.filename = filename
+                self.size = len(file_data)
+                
+            async def read(self):
+                with open(self.file_path, 'rb') as f:
+                    return f.read()
+        
+        chunked_file = ChunkedFile(temp_file_path, session["filename"])
+        
+        # Gerar task_id
+        import uuid
+        task_id = str(uuid.uuid4())
+        
+        # Iniciar processamento assíncrono
+        asyncio.create_task(_process_upload_async(task_id, chunked_file, session["case_id"], use_case))
+        
+        # Limpar sessão
+        del upload_sessions[upload_id]
+        
+        return {"task_id": task_id}
+        
+    finally:
+        # Limpar arquivo temporário
+        if os.path.exists(temp_file_path):
+            os.unlink(temp_file_path)
+
+
+# Upload Chunked Endpoints para arquivos grandes
+upload_sessions = {}  # Em produção, usar Redis ou banco de dados
+
+from pydantic import BaseModel
+
+class ChunkedUploadInit(BaseModel):
+    filename: str
+    file_size: int
+    case_id: str
+    total_chunks: int
+
+class ChunkedUploadFinalize(BaseModel):
+    upload_id: str
+
+@router.post("/chunked/init")
+async def init_chunked_upload(request: ChunkedUploadInit):
+    """Inicializa sessão de upload chunked."""
+    import uuid
+    
+    upload_id = str(uuid.uuid4())
+    upload_sessions[upload_id] = {
+        "filename": request.filename,
+        "file_size": request.file_size,
+        "case_id": request.case_id,
+        "total_chunks": request.total_chunks,
+        "chunks_received": [],
+        "chunks_data": {}
+    }
+    
+    return {"upload_id": upload_id}
+
+
+@router.post("/chunked/chunk")
+async def upload_chunk(
+    chunk: UploadFile = File(...),
+    upload_id: str = Form(...),
+    chunk_index: int = Form(...)
+):
+    """Recebe um chunk do arquivo."""
+    if upload_id not in upload_sessions:
+        raise HTTPException(status_code=404, detail="Sessão de upload não encontrada")
+    
+    session = upload_sessions[upload_id]
+    
+    # Ler dados do chunk
+    chunk_data = await chunk.read()
+    session["chunks_data"][chunk_index] = chunk_data
+    session["chunks_received"].append(chunk_index)
+    
+    return {"status": "chunk_received", "chunk_index": chunk_index}
+
+
+@router.post("/chunked/finalize")
+async def finalize_chunked_upload(
+    request: ChunkedUploadFinalize,
+    use_case: CreateProcessFromUploadUseCase = Depends(get_create_process_from_upload_use_case)
+):
+    """Finaliza upload chunked e inicia processamento."""
+    upload_id = request.upload_id
+    
+    if upload_id not in upload_sessions:
+        raise HTTPException(status_code=404, detail="Sessão de upload não encontrada")
+    
+    session = upload_sessions[upload_id]
+    
+    # Verificar se todos os chunks foram recebidos
+    if len(session["chunks_received"]) != session["total_chunks"]:
+        raise HTTPException(status_code=400, detail="Nem todos os chunks foram recebidos")
+    
+    # Reconstituir arquivo
+    file_data = b""
+    for i in range(session["total_chunks"]):
+        if i not in session["chunks_data"]:
+            raise HTTPException(status_code=400, detail=f"Chunk {i} não encontrado")
+        file_data += session["chunks_data"][i]
+    
+    # Criar arquivo temporário
+    import tempfile
+    import os
+    
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as temp_file:
+        temp_file.write(file_data)
+        temp_file_path = temp_file.name
+    
+    try:
+        # Simular UploadFile para compatibilidade
+        class ChunkedFile:
+            def __init__(self, file_path: str, filename: str, file_size: int):
+                self.file_path = file_path
+                self.filename = filename
+                self.size = file_size
+                
+            async def read(self):
+                with open(self.file_path, 'rb') as f:
+                    return f.read()
+        
+        chunked_file = ChunkedFile(temp_file_path, session["filename"], session["file_size"])
+        
+        # Gerar task_id
+        import uuid
+        task_id = str(uuid.uuid4())
+        
+        # Iniciar processamento assíncrono
+        asyncio.create_task(_process_upload_async(task_id, chunked_file, session["case_id"], use_case))
+        
+        # Limpar sessão
+        del upload_sessions[upload_id]
+        
+        return {"task_id": task_id}
+        
+    finally:
+        # Limpar arquivo temporário após um delay
+        def cleanup_later():
+            import time
+            time.sleep(60)  # Aguardar 1 minuto antes de limpar
+            if os.path.exists(temp_file_path):
+                os.unlink(temp_file_path)
+        
+        import threading
+        threading.Thread(target=cleanup_later).start()

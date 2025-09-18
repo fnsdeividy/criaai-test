@@ -145,22 +145,118 @@ class ApiClient {
   }
 
   /**
-   * Inicia upload assíncrono
+   * Inicia upload assíncrono com chunks para arquivos grandes
    */
   async startAsyncUpload(request: UploadRequest): Promise<ApiResponse<{ task_id: string }>> {
-    const formData = new FormData();
-    formData.append("file", request.file);
-    formData.append("case_id", request.case_id);
+    const CHUNK_SIZE = 4 * 1024 * 1024; // 4MB por chunk
+    
+    // Se arquivo é menor que 4MB, upload direto
+    if (request.file.size <= CHUNK_SIZE) {
+      const formData = new FormData();
+      formData.append("file", request.file);
+      formData.append("case_id", request.case_id);
 
-    return this.executeWithRetry(() => {
-      const controller = this.createAbortController();
+      return this.executeWithRetry(() => {
+        const controller = this.createAbortController();
 
-      return fetch(`${this.baseUrl}/upload/async`, {
-        method: "POST",
-        body: formData,
-        signal: controller.signal,
+        return fetch(`${this.baseUrl}/upload/async`, {
+          method: "POST",
+          body: formData,
+          signal: controller.signal,
+        });
       });
-    });
+    }
+
+    // Para arquivos grandes, usar upload por chunks
+    return this.uploadFileInChunks(request);
+  }
+
+  /**
+   * Upload de arquivo grande dividido em chunks
+   */
+  private async uploadFileInChunks(request: UploadRequest): Promise<ApiResponse<{ task_id: string }>> {
+    const CHUNK_SIZE = 4 * 1024 * 1024; // 4MB por chunk
+    const totalChunks = Math.ceil(request.file.size / CHUNK_SIZE);
+    
+    try {
+      // 1. Iniciar sessão de upload chunked
+      const initResponse = await this.executeWithRetry(() => {
+        const controller = this.createAbortController();
+        
+        return fetch(`${this.baseUrl}/upload/chunked/init`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            filename: request.file.name,
+            file_size: request.file.size,
+            case_id: request.case_id,
+            total_chunks: totalChunks
+          }),
+          signal: controller.signal,
+        });
+      });
+
+      if (initResponse.error) {
+        return initResponse as ApiResponse<{ task_id: string }>;
+      }
+
+      const { upload_id } = initResponse.data!;
+
+      // 2. Enviar cada chunk
+      for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
+        const start = chunkIndex * CHUNK_SIZE;
+        const end = Math.min(start + CHUNK_SIZE, request.file.size);
+        const chunk = request.file.slice(start, end);
+
+        const formData = new FormData();
+        formData.append("chunk", chunk);
+        formData.append("upload_id", upload_id);
+        formData.append("chunk_index", chunkIndex.toString());
+
+        const chunkResponse = await this.executeWithRetry(() => {
+          const controller = this.createAbortController();
+
+          return fetch(`${this.baseUrl}/upload/chunked/chunk`, {
+            method: "POST",
+            body: formData,
+            signal: controller.signal,
+          });
+        });
+
+        if (chunkResponse.error) {
+          return chunkResponse as ApiResponse<{ task_id: string }>;
+        }
+      }
+
+      // 3. Finalizar upload
+      const finalizeResponse = await this.executeWithRetry(() => {
+        const controller = this.createAbortController();
+
+        return fetch(`${this.baseUrl}/upload/chunked/finalize`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            upload_id: upload_id
+          }),
+          signal: controller.signal,
+        });
+      });
+
+      return finalizeResponse as ApiResponse<{ task_id: string }>;
+
+    } catch (error) {
+      return {
+        error: {
+          detail: error instanceof Error ? error.message : "Erro durante upload por chunks",
+          type: "ChunkedUploadError",
+        },
+        status: 0,
+      };
+    }
   }
 
   /**
