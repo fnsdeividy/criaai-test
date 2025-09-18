@@ -1,3 +1,5 @@
+import React from 'react';
+
 const Header = () => {
   return (
     <header className="border-b border-border bg-surface/50 backdrop-blur-sm sticky top-0 z-50">

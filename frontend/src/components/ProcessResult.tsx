@@ -92,101 +92,104 @@ const ProcessResult = ({ data }: ProcessResultProps) => {
   const completionScore = Math.min(100, (data.timeline.length * 20) + (data.evidence.length * 15) + (data.resume.length / 10));
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-4 sm:space-y-6 animate-fade-in max-w-full overflow-hidden">
       {/* Header com Estatísticas */}
       <Card className="card-legal bg-gradient-to-r from-surface to-surface-elevated border-primary/20">
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="w-12 h-12 bg-primary/20 rounded-full flex items-center justify-center">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+            <div className="flex items-center space-x-3 min-w-0 flex-1">
+              <div className="w-12 h-12 bg-primary/20 rounded-full flex items-center justify-center flex-shrink-0">
                 <Sparkles className="w-6 h-6 text-primary animate-pulse" />
               </div>
-              <div>
-                <CardTitle className="text-foreground font-montserrat text-xl">
+              <div className="min-w-0 flex-1">
+                <CardTitle className="text-foreground font-montserrat text-lg sm:text-xl truncate">
                   Análise Concluída com IA
                 </CardTitle>
-                <p className="text-foreground-muted font-lato text-sm">
+                <p className="text-foreground-muted font-lato text-sm truncate">
                   Processado por Google Gemini 1.5
                 </p>
               </div>
             </div>
-            <div className="flex space-x-2">
+            <div className="flex flex-wrap gap-2 justify-center lg:justify-end">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => copyToClipboard(data.resume)}
-                className="hover:bg-primary/10 hover:border-primary/30"
+                className="hover:bg-primary/10 hover:border-primary/30 flex-shrink-0"
               >
                 <Copy className="w-4 h-4 mr-1" />
-                Copiar Resumo
+                <span className="hidden sm:inline">Copiar Resumo</span>
+                <span className="sm:hidden">Copiar</span>
               </Button>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={downloadJSON}
-                className="hover:bg-primary/10 hover:border-primary/30"
+                className="hover:bg-primary/10 hover:border-primary/30 flex-shrink-0"
               >
                 <Download className="w-4 h-4 mr-1" />
-                Baixar JSON
+                <span className="hidden sm:inline">Baixar JSON</span>
+                <span className="sm:hidden">JSON</span>
               </Button>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => copyToClipboard(window.location.href)}
-                className="hover:bg-primary/10 hover:border-primary/30"
+                className="hover:bg-primary/10 hover:border-primary/30 flex-shrink-0"
               >
                 <Share2 className="w-4 h-4 mr-1" />
-                Compartilhar
+                <span className="hidden sm:inline">Compartilhar</span>
+                <span className="sm:hidden">Share</span>
               </Button>
             </div>
           </div>
         </CardHeader>
         <CardContent>
           {/* Estatísticas Rápidas */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-            <div className="text-center p-3 bg-primary/5 rounded-lg border border-primary/10">
-              <div className="text-2xl font-bold text-primary font-montserrat">{data.timeline.length}</div>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
+            <div className="text-center p-3 bg-primary/5 rounded-lg border border-primary/10 min-w-0">
+              <div className="text-xl sm:text-2xl font-bold text-primary font-montserrat truncate">{data.timeline.length}</div>
               <div className="text-xs text-foreground-muted font-lato">Eventos</div>
             </div>
-            <div className="text-center p-3 bg-accent-orange/5 rounded-lg border border-accent-orange/10">
-              <div className="text-2xl font-bold text-accent-orange font-montserrat">{data.evidence.length}</div>
+            <div className="text-center p-3 bg-accent-orange/5 rounded-lg border border-accent-orange/10 min-w-0">
+              <div className="text-xl sm:text-2xl font-bold text-accent-orange font-montserrat truncate">{data.evidence.length}</div>
               <div className="text-xs text-foreground-muted font-lato">Evidências</div>
             </div>
-            <div className="text-center p-3 bg-primary-light/5 rounded-lg border border-primary-light/10">
-              <div className="text-2xl font-bold text-primary-light font-montserrat">{totalPages}</div>
+            <div className="text-center p-3 bg-primary-light/5 rounded-lg border border-primary-light/10 min-w-0">
+              <div className="text-xl sm:text-2xl font-bold text-primary-light font-montserrat truncate">{totalPages}</div>
               <div className="text-xs text-foreground-muted font-lato">Páginas</div>
             </div>
-            <div className="text-center p-3 bg-surface-elevated rounded-lg border border-border">
-              <div className="text-2xl font-bold text-foreground font-montserrat">{Math.round(completionScore)}%</div>
+            <div className="text-center p-3 bg-surface-elevated rounded-lg border border-border min-w-0">
+              <div className="text-xl sm:text-2xl font-bold text-foreground font-montserrat truncate">{Math.round(completionScore)}%</div>
               <div className="text-xs text-foreground-muted font-lato">Completude</div>
             </div>
           </div>
 
           {/* Informações do Processo */}
-          <div className="grid md:grid-cols-3 gap-4">
-            <div>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="min-w-0">
               <p className="text-sm text-foreground-muted font-lato mb-1">ID do Processo</p>
-              <div className="flex items-center space-x-2">
-                <p className="text-foreground font-montserrat font-semibold">{data.case_id}</p>
+              <div className="flex items-center space-x-2 min-w-0">
+                <p className="text-foreground font-montserrat font-semibold truncate flex-1 text-sm sm:text-base">{data.case_id}</p>
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => copyToClipboard(data.case_id)}
-                  className="h-6 w-6 p-0 hover:bg-primary/10"
+                  className="h-6 w-6 p-0 hover:bg-primary/10 flex-shrink-0"
                 >
                   <Copy className="w-3 h-3" />
                 </Button>
               </div>
             </div>
-            <div>
+            <div className="min-w-0">
               <p className="text-sm text-foreground-muted font-lato mb-1">Processado em</p>
-              <p className="text-foreground font-montserrat">{formatDate(data.persisted_at)}</p>
+              <p className="text-foreground font-montserrat truncate text-sm sm:text-base">{formatDate(data.persisted_at)}</p>
             </div>
-            <div>
+            <div className="min-w-0 sm:col-span-2 lg:col-span-1">
               <p className="text-sm text-foreground-muted font-lato mb-1">Status</p>
               <div className="flex items-center space-x-2">
-                <CheckCircle className="w-4 h-4 text-green-500" />
-                <span className="text-foreground font-montserrat">Completo</span>
+                <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
+                <span className="text-foreground font-montserrat text-sm sm:text-base">Completo</span>
               </div>
             </div>
           </div>
@@ -204,22 +207,22 @@ const ProcessResult = ({ data }: ProcessResultProps) => {
 
       {/* Conteúdo Principal com Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-4 mb-6">
-          <TabsTrigger value="overview" className="flex items-center space-x-2">
-            <Eye className="w-4 h-4" />
-            <span>Visão Geral</span>
+        <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 mb-6">
+          <TabsTrigger value="overview" className="flex items-center justify-center space-x-1 sm:space-x-2 px-2 sm:px-4">
+            <Eye className="w-4 h-4 flex-shrink-0" />
+            <span className="text-xs sm:text-sm truncate">Visão Geral</span>
           </TabsTrigger>
-          <TabsTrigger value="timeline" className="flex items-center space-x-2">
-            <Calendar className="w-4 h-4" />
-            <span>Timeline</span>
+          <TabsTrigger value="timeline" className="flex items-center justify-center space-x-1 sm:space-x-2 px-2 sm:px-4">
+            <Calendar className="w-4 h-4 flex-shrink-0" />
+            <span className="text-xs sm:text-sm truncate">Timeline</span>
           </TabsTrigger>
-          <TabsTrigger value="evidence" className="flex items-center space-x-2">
-            <ExternalLink className="w-4 h-4" />
-            <span>Evidências</span>
+          <TabsTrigger value="evidence" className="flex items-center justify-center space-x-1 sm:space-x-2 px-2 sm:px-4">
+            <ExternalLink className="w-4 h-4 flex-shrink-0" />
+            <span className="text-xs sm:text-sm truncate">Evidências</span>
           </TabsTrigger>
-          <TabsTrigger value="analytics" className="flex items-center space-x-2">
-            <BarChart3 className="w-4 h-4" />
-            <span>Análise</span>
+          <TabsTrigger value="analytics" className="flex items-center justify-center space-x-1 sm:space-x-2 px-2 sm:px-4">
+            <BarChart3 className="w-4 h-4 flex-shrink-0" />
+            <span className="text-xs sm:text-sm truncate">Análise</span>
           </TabsTrigger>
         </TabsList>
 
@@ -257,7 +260,7 @@ const ProcessResult = ({ data }: ProcessResultProps) => {
           </Card>
 
           {/* Resumo Rápido */}
-          <div className="grid md:grid-cols-2 gap-6">
+          <div className="grid lg:grid-cols-2 gap-6">
             <Card className="card-legal">
               <CardHeader>
                 <CardTitle className="text-foreground font-montserrat text-lg">
@@ -491,7 +494,7 @@ const ProcessResult = ({ data }: ProcessResultProps) => {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid md:grid-cols-2 gap-6">
+                <div className="grid lg:grid-cols-2 gap-6">
                   <div>
                     <h4 className="text-foreground font-montserrat font-semibold mb-3">
                       Distribuição de Conteúdo
@@ -571,8 +574,8 @@ const ProcessResult = ({ data }: ProcessResultProps) => {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="bg-surface-elevated rounded-xl p-4 max-h-64 overflow-auto border border-border/50">
-                  <pre className="text-sm text-primary-light font-mono whitespace-pre-wrap">
+                <div className="bg-surface-elevated rounded-xl p-3 sm:p-4 max-h-64 overflow-auto border border-border/50">
+                  <pre className="text-xs sm:text-sm text-primary-light font-mono whitespace-pre-wrap break-all">
                     {JSON.stringify(data, null, 2)}
                   </pre>
                 </div>

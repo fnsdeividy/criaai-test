@@ -251,15 +251,15 @@ const PDFProcessor = () => {
   const hasValidationErrors = state.validationErrors.length > 0;
 
   return (
-    <div className="container mx-auto px-6 py-12 max-w-7xl">
-      <div className="grid lg:grid-cols-2 gap-12">
+    <div className="container mx-auto px-4 sm:px-6 py-8 sm:py-12 max-w-7xl">
+      <div className="grid lg:grid-cols-2 gap-6 lg:gap-12">
         {/* Input Section */}
-        <div className="space-y-8">
+        <div className="space-y-6 sm:space-y-8">
           <div className="text-center lg:text-left">
-            <h1 className="text-4xl lg:text-5xl font-bebas text-gradient mb-4">
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bebas text-gradient mb-4 leading-tight">
               Analisador de PDFs Jurídicos
             </h1>
-            <p className="text-xl text-foreground-secondary font-lato">
+            <p className="text-lg sm:text-xl text-foreground-secondary font-lato">
               Extraia informações estruturadas de processos em segundos
             </p>
           </div>
@@ -449,12 +449,12 @@ const PDFProcessor = () => {
         </div>
 
         {/* Result Section */}
-        <div className="space-y-8">
+        <div className="space-y-6 sm:space-y-8">
           <div className="text-center lg:text-left">
-            <h2 className="text-3xl font-bebas text-gradient mb-4">
+            <h2 className="text-2xl sm:text-3xl font-bebas text-gradient mb-4 leading-tight">
               Resultado da Análise
             </h2>
-            <p className="text-lg text-foreground-secondary font-lato">
+            <p className="text-base sm:text-lg text-foreground-secondary font-lato">
               Dados estruturados prontos para uso
             </p>
           </div>
@@ -511,12 +511,12 @@ const PDFProcessor = () => {
           {state.result && state.processingState === "completed" && (
             <div
               ref={resultRef}
-              className="mt-12 pt-8 border-t border-border/30 animate-fade-in"
+              className="mt-8 sm:mt-12 pt-6 sm:pt-8 border-t border-border/30 animate-fade-in"
             >
-              <div className="mb-6 text-center animate-fade-in-up">
-                <div className="inline-flex items-center space-x-2 bg-primary/10 text-primary px-4 py-2 rounded-full border border-primary/20 shadow-glow">
-                  <Brain className="w-5 h-5 animate-pulse" />
-                  <span className="font-montserrat font-semibold">Resultados da Análise</span>
+              <div className="mb-4 sm:mb-6 text-center animate-fade-in-up">
+                <div className="inline-flex items-center space-x-2 bg-primary/10 text-primary px-3 sm:px-4 py-2 rounded-full border border-primary/20 shadow-glow">
+                  <Brain className="w-4 sm:w-5 h-4 sm:h-5 animate-pulse" />
+                  <span className="font-montserrat font-semibold text-sm sm:text-base">Resultados da Análise</span>
                 </div>
               </div>
               <div className="animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
