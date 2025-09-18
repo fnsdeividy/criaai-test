@@ -97,7 +97,6 @@ coverage.xml
 # Docker
 .dockerignore
 Dockerfile*
-docker-compose*.yml
 
 # API Keys and Secrets (security)
 *.key
