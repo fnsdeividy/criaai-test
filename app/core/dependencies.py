@@ -22,13 +22,22 @@ logger = logging.getLogger(__name__)
 def get_database_manager() -> DatabaseManager:
     """Retorna instância singleton do gerenciador de banco."""
     logger.info("Inicializando gerenciador de banco de dados")
+    logger.info(f"DATABASE_URL: {settings.database_url[:50]}...")
     try:
         db_manager = DatabaseManager(settings.database_url)
+        logger.info("DatabaseManager criado com sucesso")
         db_manager.create_tables()
+        logger.info("Tabelas criadas/verificadas com sucesso")
+        # Testar conexão
+        session = db_manager.get_session()
+        session.close()
+        logger.info("Conexão com banco testada com sucesso")
         return db_manager
     except Exception as e:
-        logger.warning(f"Falha ao inicializar banco de dados: {e}")
-        logger.info("Continuando sem persistência de dados")
+        logger.error(f"Falha ao inicializar banco de dados: {e}")
+        logger.error(f"Tipo do erro: {type(e).__name__}")
+        logger.error(f"DATABASE_URL: {settings.database_url}")
+        logger.info("Continuando com MockDatabaseManager (sem persistência)")
         # Retorna um mock manager que não faz nada
         return MockDatabaseManager()
 
