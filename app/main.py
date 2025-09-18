@@ -79,80 +79,24 @@ app = FastAPI(
     timeout=settings.api_timeout  # Timeout configurável
 )
 
+# Configurar CORS - Versão robusta para produção
+import os
+
+# CORS deve ser o primeiro middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Wildcard temporário para debug
+    allow_credentials=False,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+    allow_headers=["*"],  # Permitir todos os headers temporariamente
+    max_age=3600,
+)
+
 # Middleware de segurança
 app.add_middleware(TrustedHostMiddleware, allowed_hosts=["*"])  # Em produção, especificar hosts
 
 # Rate limiting
 app.middleware("http")(rate_limit_middleware)
-
-# Configurar CORS - Versão robusta para produção
-import os
-
-# Configurar origens permitidas para CORS
-# Lista padrão de origens confiáveis
-default_origins = [
-    "https://criaai-test.vercel.app",
-    # URLs dinâmicas do Vercel (frontend)
-    "https://criaai-test-git-main-fnsdeividys-projects.vercel.app",
-    "https://criaai-test-fnsdeividys-projects.vercel.app",
-    # URLs dinâmicas do Vercel (backend) - caso sejam usadas como frontend
-    "https://criaai-test-afe7-xscdfc12f-fnsdeividys-projects.vercel.app",
-    # Desenvolvimento local
-    "http://localhost:3000",
-    "http://localhost:5173",  # Vite dev server
-    "http://localhost:8080",
-    "http://127.0.0.1:3000",
-    "http://127.0.0.1:5173",
-    "http://127.0.0.1:8080"
-]
-
-# Adicionar suporte para URLs dinâmicas do Vercel baseadas no host atual
-current_host = os.getenv("VERCEL_URL")
-if current_host:
-    # Adicionar a URL atual e variações comuns
-    vercel_urls = [
-        f"https://{current_host}",
-        "https://criaai-test.vercel.app",  # URL principal
-    ]
-    default_origins.extend(vercel_urls)
-    print(f"🔧 URLs Vercel detectadas: {vercel_urls}")
-
-# Tentar obter origens do ambiente
-env_origins = os.getenv("ALLOWED_ORIGINS", "")
-if env_origins:
-    try:
-        import json
-        cors_origins = json.loads(env_origins)
-        print(f"🔧 CORS Origins do ENV: {cors_origins}")
-    except:
-        # Se falhar o parse, usar lista padrão
-        cors_origins = default_origins
-        print(f"🔧 CORS Origins fallback (parse error): {cors_origins}")
-else:
-    # Usar lista padrão em vez de wildcard
-    cors_origins = default_origins
-    print(f"🔧 CORS Origins padrão: {cors_origins}")
-
-# Debug: adicionar wildcard temporário para testar
-cors_origins.append("*")
-print(f"🚨 CORS Origins final (com wildcard temporário): {cors_origins}")
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=cors_origins,
-    allow_credentials=False,  # Temporariamente False devido ao wildcard
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
-    allow_headers=[
-        "Content-Type", 
-        "Authorization", 
-        "X-Requested-With",
-        "Accept",
-        "Origin",
-        "Access-Control-Request-Method",
-        "Access-Control-Request-Headers",
-    ],
-    max_age=3600,
-)
 
 # Rota de teste para CORS
 @app.get("/cors-test")
@@ -160,7 +104,7 @@ async def cors_test():
     """Rota de teste para verificar se CORS está funcionando."""
     return {
         "message": "CORS está funcionando!",
-        "allowed_origins": cors_origins,
+        "allowed_origins": ["*"],
         "timestamp": "2024-09-18"
     }
 
