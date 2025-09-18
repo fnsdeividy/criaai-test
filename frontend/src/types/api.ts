@@ -53,7 +53,7 @@ export interface ApiResponse<T> {
 }
 
 // Processing states
-export type ProcessingState = "idle" | "validating" | "uploading" | "processing" | "completed" | "error";
+export type ProcessingState = "idle" | "validating" | "uploading" | "processing" | "polling" | "completed" | "error";
 
 // Upload progress
 export interface UploadProgress {

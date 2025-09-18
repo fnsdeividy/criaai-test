@@ -179,89 +179,105 @@ class ApiClient {
   }
 
   /**
-   * Processa PDF via upload (mantido para compatibilidade)
+   * Processa PDF via upload assíncrono com polling
    */
   async extractFromUpload(
     request: UploadRequest,
     onProgress?: (progress: number) => void
   ): Promise<ApiResponse<ProcessData>> {
-    return new Promise((resolve) => {
-      const xhr = new XMLHttpRequest();
-      const formData = new FormData();
-
-      formData.append("file", request.file);
-      formData.append("case_id", request.case_id);
-
-      // Progress tracking
-      if (onProgress) {
-        xhr.upload.addEventListener("progress", (event) => {
-          if (event.lengthComputable) {
-            const progress = Math.round((event.loaded / event.total) * 100);
-            onProgress(progress);
-          }
-        });
+    try {
+      // 1. Iniciar upload assíncrono
+      if (onProgress) onProgress(10); // Upload iniciado
+      
+      const uploadResponse = await this.startAsyncUpload(request);
+      
+      if (uploadResponse.error) {
+        return uploadResponse as ApiResponse<ProcessData>;
       }
 
-      xhr.timeout = API_CONFIG.TIMEOUT_UPLOAD; // Usar timeout específico para upload
+      const taskId = uploadResponse.data!.task_id;
+      if (onProgress) onProgress(25); // Upload concluído, processamento iniciado
 
-      xhr.addEventListener("load", () => {
-        try {
-          if (xhr.status >= 200 && xhr.status < 300) {
-            const data = JSON.parse(xhr.responseText);
-            resolve({
-              data: data as ProcessData,
-              status: xhr.status,
-            });
-          } else {
-            let errorResponse: ApiErrorResponse;
-            try {
-              errorResponse = JSON.parse(xhr.responseText);
-            } catch {
-              errorResponse = {
-                detail: `HTTP ${xhr.status}: ${xhr.statusText}`,
-              };
-            }
+      // 2. Polling para acompanhar o progresso
+      return await this.pollTaskStatus(taskId, onProgress);
+      
+    } catch (error) {
+      return {
+        error: {
+          detail: error instanceof Error ? error.message : "Erro durante upload assíncrono",
+          type: "AsyncUploadError",
+        },
+        status: 0,
+      };
+    }
+  }
 
-            resolve({
-              error: errorResponse,
-              status: xhr.status,
-            });
-          }
-        } catch (error) {
-          resolve({
-            error: {
-              detail: "Erro ao processar resposta do servidor",
-              type: "ParseError",
-            },
-            status: xhr.status,
-          });
+  /**
+   * Faz polling do status da tarefa até completar
+   */
+  private async pollTaskStatus(
+    taskId: string, 
+    onProgress?: (progress: number) => void
+  ): Promise<ApiResponse<ProcessData>> {
+    const maxAttempts = 180; // 3 minutos com polling a cada segundo
+    let attempts = 0;
+    
+    while (attempts < maxAttempts) {
+      try {
+        const statusResponse = await this.getTaskStatus(taskId);
+        
+        if (statusResponse.error) {
+          return statusResponse as ApiResponse<ProcessData>;
         }
-      });
 
-      xhr.addEventListener("error", () => {
-        resolve({
-          error: {
-            detail: "Erro de conexão durante upload",
-            type: "NetworkError",
-          },
-          status: 0,
-        });
-      });
+        const status = statusResponse.data;
+        
+        // Atualizar progresso baseado no status
+        if (onProgress) {
+          const baseProgress = 25; // Upload já concluído
+          const processingProgress = Math.min(75, attempts * 2); // Progresso estimado
+          onProgress(baseProgress + processingProgress);
+        }
 
-      xhr.addEventListener("timeout", () => {
-        resolve({
-          error: {
-            detail: "Timeout durante upload",
-            type: "TimeoutError",
-          },
-          status: 0,
-        });
-      });
+        // Verificar se a tarefa foi concluída
+        if (status.status === 'completed' && status.result) {
+          if (onProgress) onProgress(100);
+          return {
+            data: status.result as ProcessData,
+            status: 200,
+          };
+        }
+        
+        // Verificar se houve erro
+        if (status.status === 'failed') {
+          return {
+            error: {
+              detail: status.error || "Processamento falhou",
+              type: "ProcessingError",
+            },
+            status: 500,
+          };
+        }
 
-      xhr.open("POST", `${this.baseUrl}/upload`);
-      xhr.setRequestHeader("X-Requested-With", "XMLHttpRequest");
-      xhr.send(formData);
-    });
+        // Aguardar antes da próxima verificação
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        attempts++;
+        
+      } catch (error) {
+        // Em caso de erro no polling, tentar novamente
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        attempts++;
+      }
+    }
+
+    // Timeout no polling
+    return {
+      error: {
+        detail: "Timeout aguardando processamento completar",
+        type: "PollingTimeout",
+      },
+      status: 408,
+    };
   }
 
   /**

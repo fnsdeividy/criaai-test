@@ -197,7 +197,21 @@ const PDFProcessor = () => {
             case_id: caseId
           },
           (progress) => {
-            setState(prev => ({ ...prev, uploadProgress: progress }));
+            setState(prev => {
+              // Determinar o estado baseado no progresso
+              let newState = prev.processingState;
+              if (progress <= 25) {
+                newState = "uploading";
+              } else if (progress <= 99) {
+                newState = "polling";
+              }
+              
+              return { 
+                ...prev, 
+                uploadProgress: progress,
+                processingState: newState
+              };
+            });
           }
         );
 
@@ -245,7 +259,7 @@ const PDFProcessor = () => {
   }, []);
 
   // Estados derivados
-  const isProcessing = ["validating", "uploading", "processing"].includes(state.processingState);
+  const isProcessing = ["validating", "uploading", "processing", "polling"].includes(state.processingState);
   const canProcess = (state.pdfUrl && state.activeTab === "url") ||
     (state.selectedFile && state.activeTab === "upload");
   const hasValidationErrors = state.validationErrors.length > 0;
@@ -409,6 +423,7 @@ const PDFProcessor = () => {
                       {state.processingState === "validating" && "Validando..."}
                       {state.processingState === "uploading" && "Enviando..."}
                       {state.processingState === "processing" && "Processando..."}
+                      {state.processingState === "polling" && "Aguardando resultado..."}
                     </>
                   ) : (
                     <>
@@ -481,11 +496,13 @@ const PDFProcessor = () => {
                   {state.processingState === "validating" && "Validando documento..."}
                   {state.processingState === "uploading" && "Enviando arquivo..."}
                   {state.processingState === "processing" && "Processando com IA..."}
+                  {state.processingState === "polling" && "Aguardando processamento completar..."}
                 </h3>
                 <p className="text-foreground-secondary font-lato">
                   {state.processingState === "uploading" && `${state.uploadProgress}% concluído`}
                   {state.processingState === "processing" && "A IA está analisando o PDF"}
                   {state.processingState === "validating" && "Verificando arquivo e configurações"}
+                  {state.processingState === "polling" && "O processamento pode levar alguns minutos para arquivos grandes"}
                 </p>
               </CardContent>
             </Card>
