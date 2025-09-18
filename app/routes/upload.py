@@ -5,7 +5,7 @@ import asyncio
 import logging
 from pathlib import Path
 from typing import Optional
-from fastapi import APIRouter, HTTPException, Depends, status, UploadFile, File
+from fastapi import APIRouter, HTTPException, Depends, status, UploadFile, File, Form, BackgroundTasks
 from pydantic import ValidationError as PydanticValidationError
 
 from app.application.dtos import UploadRequest, ExtractResponse
