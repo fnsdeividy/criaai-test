@@ -1,0 +1,44 @@
+# Google Gemini API Configuration
+GEMINI_API_KEY=AIzaSyDfoevCS55mee5aguuny9iCAlS_hhLh3Gc
+
+# Database Configuration
+DATABASE_URL=sqlite:///./process_extractions.db
+
+# Application Configuration
+TMP_DIR=/tmp
+DOWNLOAD_TIMEOUT=30
+LOG_LEVEL=INFO
+MAX_FILE_SIZE_MB=14
+
+# LLM Timeout Configuration
+LLM_TIMEOUT=600
+API_TIMEOUT=1200
+UPLOAD_TIMEOUT=300
+
+# Retry Configuration
+MAX_RETRIES=3
+RETRY_DELAY_BASE=1.0
+RETRY_DELAY_MAX=60.0
+
+# Gemini API Timeout Configuration
+GEMINI_UPLOAD_TIMEOUT=600
+GEMINI_GENERATION_TIMEOUT=900
+
+# PDF Validation Configuration
+VALIDATE_PDF_STRUCTURE=true
+MAX_PDF_PAGES=500
+
+# Security Configuration - CORS
+# IMPORTANTE: Use JSON válido para ALLOWED_ORIGINS
+# Exemplo: ["https://meusite.com", "http://localhost:3000"]
+ALLOWED_ORIGINS=["https://criaai-test.vercel.app", "https://criaai-test-afe7-xscdfc12f-fnsdeividys-projects.vercel.app", "http://localhost:3000", "http://localhost:8080"]
+ADDITIONAL_DEV_ORIGINS="http://localhost:8081,http://localhost:5173"
+RATE_LIMIT_REQUESTS=100
+
+# CORS Configuration
+CORS_MAX_AGE=3600
+
+# API Configuration
+API_TITLE=Process Extraction API
+API_DESCRIPTION=API para extração de dados estruturados de processos jurídicos usando IA
+API_VERSION=1.0.0

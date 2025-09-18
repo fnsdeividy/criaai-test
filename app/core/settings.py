@@ -15,9 +15,9 @@ class Settings(BaseSettings):
     
     # Database Configuration
     database_url: str = Field(
-        default="postgresql://postgres:postgres@localhost:5432/process_extractions",
+        default="sqlite:///./process_extractions.db",
         env="DATABASE_URL",
-        description="URL de conexão com o banco de dados PostgreSQL"
+        description="URL de conexão com o banco de dados"
     )
     
     # Application Configuration

@@ -4,7 +4,7 @@ Configuração e modelos do banco de dados.
 import json
 from datetime import datetime
 from typing import Dict, Any, Optional
-from sqlalchemy import create_engine, Column, Integer, String, Text, DateTime, JSON
+from sqlalchemy import create_engine, Column, Integer, String, Text, DateTime
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
 
@@ -19,8 +19,8 @@ class ProcessExtraction(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     case_id = Column(String(100), unique=True, nullable=False, index=True)
     resume = Column(Text, nullable=False)
-    timeline = Column(JSON, nullable=False)
-    evidence = Column(JSON, nullable=False)
+    timeline = Column(Text, nullable=False)  # JSON como texto para compatibilidade SQLite
+    evidence = Column(Text, nullable=False)  # JSON como texto para compatibilidade SQLite
     persisted_at = Column(DateTime, nullable=False, default=datetime.utcnow)
 
     def to_dict(self) -> Dict[str, Any]:
@@ -28,8 +28,8 @@ class ProcessExtraction(Base):
         return {
             "case_id": self.case_id,
             "resume": self.resume,
-            "timeline": self.timeline,
-            "evidence": self.evidence,
+            "timeline": json.loads(self.timeline) if isinstance(self.timeline, str) else self.timeline,
+            "evidence": json.loads(self.evidence) if isinstance(self.evidence, str) else self.evidence,
             "persisted_at": self.persisted_at
         }
 

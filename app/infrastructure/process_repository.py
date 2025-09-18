@@ -1,6 +1,7 @@
 """
 Repositório para persistência de processos jurídicos.
 """
+import json
 import logging
 from datetime import datetime
 from typing import Dict, Any, Optional
@@ -49,8 +50,8 @@ class SqlAlchemyProcessRepository(IProcessRepository):
             extraction = ProcessExtraction(
                 case_id=case_id,
                 resume=payload["resume"],
-                timeline=payload["timeline"],
-                evidence=payload["evidence"],
+                timeline=json.dumps(payload["timeline"], ensure_ascii=False),  # Converter para JSON string
+                evidence=json.dumps(payload["evidence"], ensure_ascii=False),  # Converter para JSON string
                 persisted_at=payload.get("persisted_at", datetime.utcnow())
             )
             
