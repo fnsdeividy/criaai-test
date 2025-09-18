@@ -88,7 +88,36 @@ app.middleware("http")(rate_limit_middleware)
 # Configurar CORS - Versão robusta para produção
 import os
 
-# Tentar obter origens do ambiente, com fallback para wildcard temporário
+# Configurar origens permitidas para CORS
+# Lista padrão de origens confiáveis
+default_origins = [
+    "https://criaai-test.vercel.app",
+    # URLs dinâmicas do Vercel (frontend)
+    "https://criaai-test-git-main-fnsdeividys-projects.vercel.app",
+    "https://criaai-test-fnsdeividys-projects.vercel.app",
+    # URLs dinâmicas do Vercel (backend) - caso sejam usadas como frontend
+    "https://criaai-test-afe7-xscdfc12f-fnsdeividys-projects.vercel.app",
+    # Desenvolvimento local
+    "http://localhost:3000",
+    "http://localhost:5173",  # Vite dev server
+    "http://localhost:8080",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:8080"
+]
+
+# Adicionar suporte para URLs dinâmicas do Vercel baseadas no host atual
+current_host = os.getenv("VERCEL_URL")
+if current_host:
+    # Adicionar a URL atual e variações comuns
+    vercel_urls = [
+        f"https://{current_host}",
+        "https://criaai-test.vercel.app",  # URL principal
+    ]
+    default_origins.extend(vercel_urls)
+    print(f"🔧 URLs Vercel detectadas: {vercel_urls}")
+
+# Tentar obter origens do ambiente
 env_origins = os.getenv("ALLOWED_ORIGINS", "")
 if env_origins:
     try:
@@ -97,22 +126,17 @@ if env_origins:
         print(f"🔧 CORS Origins do ENV: {cors_origins}")
     except:
         # Se falhar o parse, usar lista padrão
-        cors_origins = [
-            "https://criaai-test.vercel.app",
-            "https://criaai-test-afe7-xscdfc12f-fnsdeividys-projects.vercel.app",
-            "http://localhost:3000",
-            "http://localhost:8080"
-        ]
-        print(f"🔧 CORS Origins fallback: {cors_origins}")
+        cors_origins = default_origins
+        print(f"🔧 CORS Origins fallback (parse error): {cors_origins}")
 else:
-    # Usar wildcard temporário para debug em produção
-    cors_origins = ["*"]
-    print("🚨 CORS Origins: WILDCARD (temporário para debug)")
+    # Usar lista padrão em vez de wildcard
+    cors_origins = default_origins
+    print(f"🔧 CORS Origins padrão: {cors_origins}")
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=cors_origins,
-    allow_credentials=True if cors_origins != ["*"] else False,  # Credentials só com origens específicas
+    allow_credentials=True,  # Sempre permitir credentials com origens específicas
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=[
         "Content-Type", 
