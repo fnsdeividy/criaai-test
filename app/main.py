@@ -82,15 +82,36 @@ app = FastAPI(
 # Configurar CORS - Versão robusta para produção
 import os
 
-# CORS deve ser o primeiro middleware
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # Wildcard temporário para debug
-    allow_credentials=False,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
-    allow_headers=["*"],  # Permitir todos os headers temporariamente
-    max_age=3600,
-)
+# Middleware de debug personalizado para CORS
+@app.middleware("http")
+async def cors_debug_middleware(request: Request, call_next):
+    """Debug middleware para CORS."""
+    origin = request.headers.get("origin")
+    method = request.method
+    
+    print(f"🔍 Request: {method} {request.url}")
+    print(f"🔍 Origin: {origin}")
+    print(f"🔍 Headers: {dict(request.headers)}")
+    
+    if method == "OPTIONS":
+        # Handle preflight manually
+        response = JSONResponse({"message": "CORS preflight OK"})
+        response.headers["Access-Control-Allow-Origin"] = "*"
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, PATCH"
+        response.headers["Access-Control-Allow-Headers"] = "*"
+        response.headers["Access-Control-Max-Age"] = "3600"
+        print(f"🔍 Preflight response headers: {dict(response.headers)}")
+        return response
+    
+    response = await call_next(request)
+    
+    # Add CORS headers to all responses
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, PATCH"
+    response.headers["Access-Control-Allow-Headers"] = "*"
+    
+    print(f"🔍 Response headers: {dict(response.headers)}")
+    return response
 
 # Middleware de segurança
 app.add_middleware(TrustedHostMiddleware, allowed_hosts=["*"])  # Em produção, especificar hosts
