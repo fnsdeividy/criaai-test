@@ -79,44 +79,42 @@ app = FastAPI(
     timeout=settings.api_timeout  # Timeout configurável
 )
 
-# Configurar CORS - Versão robusta para produção
-import os
-
-# CORS simples e direto
+# CORS completamente liberado
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
+    max_age=86400,
 )
 
 # Middleware de segurança
 app.add_middleware(TrustedHostMiddleware, allowed_hosts=["*"])  # Em produção, especificar hosts
 
-# Rate limiting
-app.middleware("http")(rate_limit_middleware)
+# Rate limiting removido temporariamente para debug
+# app.middleware("http")(rate_limit_middleware)
 
 # Rota de teste para CORS
 @app.get("/cors-test")
 async def cors_test():
     """Rota de teste para verificar se CORS está funcionando."""
     return {
-        "message": "CORS está funcionando!",
+        "message": "CORS TOTALMENTE LIBERADO!",
         "allowed_origins": ["*"],
         "timestamp": "2024-09-18",
-        "debug": "versao_simplificada_v2"
+        "version": "cors_liberado_v3"
     }
 
-# Rota para debug de headers
-@app.get("/debug-headers")
-async def debug_headers(request: Request):
-    """Debug dos headers da requisição."""
+# Rota simples para testar deployment
+@app.get("/test-deploy")
+async def test_deploy():
+    """Rota simples para testar se deployment funciona."""
+    import time
     return {
-        "headers": dict(request.headers),
-        "origin": request.headers.get("origin"),
-        "host": request.headers.get("host"),
-        "method": request.method
+        "message": "Deploy funcionando!",
+        "timestamp": int(time.time()),
+        "version": "deploy_test_v1"
     }
 
 # Registrar routers
