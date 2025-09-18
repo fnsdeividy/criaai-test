@@ -111,7 +111,6 @@ else:
 
 app.add_middleware(
     CORSMiddleware,
-<<<<<<< HEAD
     allow_origins=cors_origins,
     allow_credentials=True if cors_origins != ["*"] else False,  # Credentials só com origens específicas
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
@@ -125,13 +124,6 @@ app.add_middleware(
         "Access-Control-Request-Headers",
     ],
     max_age=3600,
-=======
-    allow_origins=settings.all_allowed_origins,  # Usar todas as origens configuradas
-    allow_credentials=True,
-    allow_methods=["GET", "POST", "OPTIONS"],  # Incluir OPTIONS para preflight
-    allow_headers=["Content-Type", "Authorization", "X-Requested-With"],  # Headers necessários
-    max_age=settings.cors_max_age,  # Cache preflight configurável
->>>>>>> 7ddce43 (feat: enhance CORS and environment configuration)
 )
 
 # Rota de teste para CORS
@@ -140,7 +132,7 @@ async def cors_test():
     """Rota de teste para verificar se CORS está funcionando."""
     return {
         "message": "CORS está funcionando!",
-        "allowed_origins": settings.all_allowed_origins,
+        "allowed_origins": cors_origins,
         "timestamp": "2024-09-18"
     }
 
