@@ -11,6 +11,7 @@ from app.infrastructure.gemini_client import GeminiClient
 from app.infrastructure.mock_gemini_client import MockGeminiClient
 from app.infrastructure.http_downloader import HttpDownloader
 from app.infrastructure.process_repository import SqlAlchemyProcessRepository
+from app.domain.interfaces import IProcessRepository
 from app.application.services import LlmService, ProcessService
 from app.application.use_cases import CreateProcessUseCase, GetProcessUseCase, CreateProcessFromUploadUseCase
 
@@ -21,9 +22,15 @@ logger = logging.getLogger(__name__)
 def get_database_manager() -> DatabaseManager:
     """Retorna instância singleton do gerenciador de banco."""
     logger.info("Inicializando gerenciador de banco de dados")
-    db_manager = DatabaseManager(settings.database_url)
-    db_manager.create_tables()
-    return db_manager
+    try:
+        db_manager = DatabaseManager(settings.database_url)
+        db_manager.create_tables()
+        return db_manager
+    except Exception as e:
+        logger.warning(f"Falha ao inicializar banco de dados: {e}")
+        logger.info("Continuando sem persistência de dados")
+        # Retorna um mock manager que não faz nada
+        return MockDatabaseManager()
 
 
 @lru_cache()
@@ -52,9 +59,12 @@ def get_http_downloader() -> HttpDownloader:
 
 
 @lru_cache()
-def get_process_repository() -> SqlAlchemyProcessRepository:
+def get_process_repository() -> IProcessRepository:
     """Retorna instância singleton do repositório de processos."""
     db_manager = get_database_manager()
+    if isinstance(db_manager, MockDatabaseManager):
+        logger.info("Usando repositório mock (sem persistência)")
+        return MockProcessRepository()
     return SqlAlchemyProcessRepository(db_manager)
 
 
@@ -99,3 +109,29 @@ def get_create_process_from_upload_use_case() -> CreateProcessFromUploadUseCase:
         process_service=get_process_service(),
         repository=get_process_repository()
     )
+
+
+class MockDatabaseManager:
+    """Mock do gerenciador de banco para quando não há banco disponível."""
+    
+    def create_tables(self):
+        """Mock - não faz nada."""
+        pass
+        
+    def get_session(self):
+        """Mock - retorna None."""
+        return None
+
+
+class MockProcessRepository(IProcessRepository):
+    """Mock do repositório para quando não há banco disponível."""
+    
+    def persist_extraction(self, case_id: str, payload: dict) -> None:
+        """Mock - não persiste nada."""
+        logger.info(f"Mock: Simulando persistência do processo {case_id}")
+        pass
+        
+    def get_by_case_id(self, case_id: str) -> dict | None:
+        """Mock - sempre retorna None."""
+        logger.info(f"Mock: Simulando busca do processo {case_id}")
+        return None
