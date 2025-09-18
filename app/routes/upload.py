@@ -181,7 +181,8 @@ async def get_upload_status(task_id: str):
 @router.post("/quick", status_code=status.HTTP_202_ACCEPTED)
 async def upload_quick_start(
     file: UploadFile = File(..., description="Arquivo PDF para processamento"),
-    case_id: Optional[str] = None
+    case_id: Optional[str] = None,
+    use_case: CreateProcessFromUploadUseCase = Depends(get_create_process_from_upload_use_case)
 ):
     """
     Inicia upload de forma ultra-rápida.
@@ -220,7 +221,7 @@ async def upload_quick_start(
         logger.info(f"Arquivo salvo imediatamente: {temp_path} ({len(file_content)} bytes)")
         
         # AGORA processar em background
-        asyncio.create_task(_process_saved_file(task_id, temp_file_path, validated_case_id))
+        asyncio.create_task(_process_saved_file(task_id, temp_file_path, validated_case_id, use_case))
         
         # Resposta imediata
         return {
@@ -254,6 +255,8 @@ async def upload_async(
     
     Retorna um task_id que pode ser usado para acompanhar o progresso.
     """
+    temp_file_path = None
+    
     try:
         # Validação rápida inicial
         if not file or not file.filename:
@@ -271,11 +274,14 @@ async def upload_async(
         # Criar tarefa assíncrona
         task_id = task_manager.create_task("pdf_upload")
         
-        # Para arquivos grandes, não ler todo o conteúdo de uma vez
-        # Apenas fazer validação básica rápida
+        # Processar case_id
+        validated_case_id = _process_case_id(case_id)
         
-        # Executar processamento em background (arquivo será lido lá)
-        asyncio.create_task(_process_upload_async(task_id, file, case_id, use_case))
+        # SALVAR ARQUIVO IMEDIATAMENTE (enquanto UploadFile ainda está aberto)
+        temp_file_path = await _save_file_securely(file)
+        
+        # Executar processamento em background com arquivo salvo
+        asyncio.create_task(_process_saved_file(task_id, temp_file_path, validated_case_id, use_case))
         
         return {
             "task_id": task_id,
@@ -286,8 +292,20 @@ async def upload_async(
         
     except HTTPException:
         raise
+    except ValidationError as e:
+        logger.error(f"Erro de validação: {e}")
+        # Cleanup se deu erro
+        if temp_file_path:
+            _cleanup_temp_file(temp_file_path)
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=str(e)
+        )
     except Exception as e:
         logger.error(f"Erro ao iniciar upload assíncrono: {e}")
+        # Cleanup se deu erro
+        if temp_file_path:
+            _cleanup_temp_file(temp_file_path)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Erro interno do servidor"
@@ -519,7 +537,8 @@ async def _save_and_process_later(
 async def _process_saved_file(
     task_id: str,
     temp_file_path: Path,
-    case_id: str
+    case_id: str,
+    use_case: CreateProcessFromUploadUseCase
 ):
     """
     Processa arquivo já salvo.
@@ -539,8 +558,7 @@ async def _process_saved_file(
         
         task_manager.update_task(task_id, progress=50, message="Processando com IA...")
         
-        # Obter use case e processar
-        use_case = get_create_process_from_upload_use_case()
+        # Processar usando o use case fornecido
         result = await _process_upload(temp_file_path, case_id, use_case)
         
         # Concluir
