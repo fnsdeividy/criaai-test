@@ -1,12 +1,13 @@
 {
   "functions": {
-    "app/main.py": {
+    "**/*.py": {
       "maxDuration": 300
     }
   },
-  "build": {
-    "env": {
-      "PYTHONPATH": "$PYTHONPATH:$PWD"
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/app/main.py"
     }
-  }
+  ]
 }
