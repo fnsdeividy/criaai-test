@@ -288,3 +288,4 @@ curl -X POST "http://localhost:8000/extract" \
 
 Este projeto está sob licença MIT. Veja o arquivo LICENSE para detalhes.
 # Force deployment Thu Sep 18 15:28:47 -03 2025
+# Force deploy Thu Sep 18 15:41:26 -03 2025
