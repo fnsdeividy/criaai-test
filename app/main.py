@@ -159,6 +159,48 @@ async def db_status():
     }
 
 
+@app.post("/create-tables", tags=["debug"])
+async def create_tables():
+    """Força criação das tabelas no banco de dados."""
+    from app.core.dependencies import get_database_manager
+    
+    try:
+        db_manager = get_database_manager()
+        
+        if "Mock" in str(type(db_manager).__name__):
+            return {
+                "success": False,
+                "error": "Usando MockDatabaseManager - banco não disponível",
+                "manager_type": str(type(db_manager).__name__)
+            }
+        
+        # Forçar criação das tabelas
+        db_manager.create_tables()
+        
+        # Testar conexão
+        session = db_manager.get_session()
+        if session:
+            session.close()
+            return {
+                "success": True,
+                "message": "Tabelas criadas com sucesso",
+                "manager_type": str(type(db_manager).__name__)
+            }
+        else:
+            return {
+                "success": False,
+                "error": "Falha ao obter sessão do banco",
+                "manager_type": str(type(db_manager).__name__)
+            }
+            
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "error_type": str(type(e).__name__)
+        }
+
+
 @app.post("/test-persist", tags=["debug"])
 async def test_persist():
     """Testa persistência diretamente no banco."""

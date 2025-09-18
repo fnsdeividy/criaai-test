@@ -39,6 +39,16 @@ class SqlAlchemyProcessRepository(IProcessRepository):
             RepositoryError: Se falhar na persistência
         """
         logger.info(f"🔍 SqlAlchemyProcessRepository.persist_extraction chamado para caso {case_id}")
+        
+        # Garantir que as tabelas existem (importante no Vercel)
+        try:
+            logger.info(f"🔧 Verificando/criando tabelas no banco...")
+            self.db_manager.create_tables()
+            logger.info(f"✅ Tabelas verificadas/criadas com sucesso")
+        except Exception as e:
+            logger.error(f"❌ Erro ao criar tabelas: {e}")
+            raise RepositoryError(f"Falha ao criar tabelas: {str(e)}")
+        
         session: Session = self.db_manager.get_session()
         
         if session is None:
