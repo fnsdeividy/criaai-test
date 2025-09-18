@@ -1,13 +1,7 @@
 {
   "functions": {
-    "**/*.py": {
+    "app/main.py": {
       "maxDuration": 300
     }
-  },
-  "rewrites": [
-    {
-      "source": "/(.*)",
-      "destination": "/app/main.py"
-    }
-  ]
+  }
 }
