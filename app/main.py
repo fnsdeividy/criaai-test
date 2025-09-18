@@ -142,6 +142,23 @@ async def health_check():
     }
 
 
+@app.get("/db-status", tags=["debug"])
+async def db_status():
+    """Verifica o status do banco de dados."""
+    from app.core.dependencies import get_database_manager, get_process_repository
+    
+    db_manager = get_database_manager()
+    repository = get_process_repository()
+    
+    return {
+        "database_url": settings.database_url[:50] + "..." if len(settings.database_url) > 50 else settings.database_url,
+        "database_manager_type": str(type(db_manager).__name__),
+        "repository_type": str(type(repository).__name__),
+        "is_mock": "Mock" in str(type(repository).__name__),
+        "session_available": db_manager.get_session() is not None
+    }
+
+
 if __name__ == "__main__":
     import uvicorn
     
