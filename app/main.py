@@ -105,7 +105,19 @@ async def cors_test():
     return {
         "message": "CORS está funcionando!",
         "allowed_origins": ["*"],
-        "timestamp": "2024-09-18"
+        "timestamp": "2024-09-18",
+        "debug": "versao_simplificada_v2"
+    }
+
+# Rota para debug de headers
+@app.get("/debug-headers")
+async def debug_headers(request: Request):
+    """Debug dos headers da requisição."""
+    return {
+        "headers": dict(request.headers),
+        "origin": request.headers.get("origin"),
+        "host": request.headers.get("host"),
+        "method": request.method
     }
 
 # Registrar routers
