@@ -159,6 +159,64 @@ async def db_status():
     }
 
 
+@app.post("/test-persist", tags=["debug"])
+async def test_persist():
+    """Testa persistência diretamente no banco."""
+    from app.core.dependencies import get_process_repository
+    import uuid
+    from datetime import datetime
+    
+    repository = get_process_repository()
+    
+    test_case_id = f"test_{uuid.uuid4().hex[:8]}"
+    test_payload = {
+        "resume": "Teste de persistência no banco de dados",
+        "timeline": [
+            {
+                "event_id": 0,
+                "event_name": "Teste",
+                "event_description": "Evento de teste",
+                "event_date": "2024-09-18",
+                "event_page_init": 1,
+                "event_page_end": 1
+            }
+        ],
+        "evidence": [
+            {
+                "evidence_id": 0,
+                "evidence_name": "Evidência de teste",
+                "evidence_flaw": "Sem inconsistências",
+                "evidence_page_init": 1,
+                "evidence_page_end": 1
+            }
+        ],
+        "persisted_at": datetime.utcnow()
+    }
+    
+    try:
+        repository.persist_extraction(test_case_id, test_payload)
+        
+        # Tentar recuperar
+        saved_data = repository.get_by_case_id(test_case_id)
+        
+        return {
+            "success": True,
+            "test_case_id": test_case_id,
+            "repository_type": str(type(repository).__name__),
+            "persisted": True,
+            "retrieved": saved_data is not None,
+            "data": saved_data
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "test_case_id": test_case_id,
+            "repository_type": str(type(repository).__name__),
+            "error": str(e),
+            "error_type": str(type(e).__name__)
+        }
+
+
 if __name__ == "__main__":
     import uvicorn
     
