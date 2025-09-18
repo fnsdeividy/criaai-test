@@ -107,10 +107,10 @@ class Settings(BaseSettings):
     )
     
     # Security Configuration
-    allowed_origins: list[str] = Field(
-        default=["http://localhost:3000", "http://localhost:8080"],
+    allowed_origins: str = Field(
+        default='["http://localhost:3000", "http://localhost:8080"]',
         env="ALLOWED_ORIGINS",
-        description="Origens permitidas para CORS"
+        description="Origens permitidas para CORS (JSON string)"
     )
     
     # Origens adicionais para desenvolvimento (separadas por vírgula)
@@ -167,7 +167,15 @@ class Settings(BaseSettings):
     @property
     def all_allowed_origins(self) -> list[str]:
         """Retorna todas as origens permitidas, incluindo as adicionais de desenvolvimento."""
-        origins = self.allowed_origins.copy()
+        import json
+        try:
+            # Parse JSON string para lista
+            origins = json.loads(self.allowed_origins)
+        except (json.JSONDecodeError, TypeError):
+            # Fallback para lista padrão se houver erro
+            origins = ["http://localhost:3000", "http://localhost:8080"]
+        
+        # Adicionar origens adicionais de desenvolvimento
         if self.additional_dev_origins:
             additional = [origin.strip() for origin in self.additional_dev_origins.split(",") if origin.strip()]
             origins.extend(additional)

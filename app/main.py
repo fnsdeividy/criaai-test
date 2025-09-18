@@ -85,15 +85,56 @@ app.add_middleware(TrustedHostMiddleware, allowed_hosts=["*"])  # Em produção,
 # Rate limiting
 app.middleware("http")(rate_limit_middleware)
 
-# Configurar CORS com restrições
+# Configurar CORS - Versão robusta para produção
+import os
+
+# Tentar obter origens do ambiente, com fallback para wildcard temporário
+env_origins = os.getenv("ALLOWED_ORIGINS", "")
+if env_origins:
+    try:
+        import json
+        cors_origins = json.loads(env_origins)
+        print(f"🔧 CORS Origins do ENV: {cors_origins}")
+    except:
+        # Se falhar o parse, usar lista padrão
+        cors_origins = [
+            "https://criaai-test.vercel.app",
+            "https://criaai-test-afe7-xscdfc12f-fnsdeividys-projects.vercel.app",
+            "http://localhost:3000",
+            "http://localhost:8080"
+        ]
+        print(f"🔧 CORS Origins fallback: {cors_origins}")
+else:
+    # Usar wildcard temporário para debug em produção
+    cors_origins = ["*"]
+    print("🚨 CORS Origins: WILDCARD (temporário para debug)")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.all_allowed_origins,  # Usar todas as origens configuradas
-    allow_credentials=True,
-    allow_methods=["GET", "POST", "OPTIONS"],  # Incluir OPTIONS para preflight
-    allow_headers=["Content-Type", "Authorization", "X-Requested-With"],  # Headers necessários
-    max_age=settings.cors_max_age,  # Cache preflight configurável
+    allow_origins=cors_origins,
+    allow_credentials=True if cors_origins != ["*"] else False,  # Credentials só com origens específicas
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+    allow_headers=[
+        "Content-Type", 
+        "Authorization", 
+        "X-Requested-With",
+        "Accept",
+        "Origin",
+        "Access-Control-Request-Method",
+        "Access-Control-Request-Headers",
+    ],
+    max_age=3600,
 )
+
+# Rota de teste para CORS
+@app.get("/cors-test")
+async def cors_test():
+    """Rota de teste para verificar se CORS está funcionando."""
+    return {
+        "message": "CORS está funcionando!",
+        "allowed_origins": settings.all_allowed_origins,
+        "timestamp": "2024-09-18"
+    }
 
 # Registrar routers
 app.include_router(extract_router)
