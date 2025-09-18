@@ -13,14 +13,32 @@ logger = logging.getLogger(__name__)
 class MockGeminiClient(ILlmClient):
     """Cliente mock para Google Gemini API."""
 
-    def __init__(self, api_key: str):
+    def __init__(
+        self, 
+        api_key: str, 
+        max_retries: int = 3, 
+        retry_delay_base: float = 1.0, 
+        retry_delay_max: float = 60.0,
+        upload_timeout: int = 300,
+        generation_timeout: int = 600
+    ):
         """
         Inicializa o cliente mock.
         
         Args:
             api_key: Chave da API (ignorada no mock)
+            max_retries: Número máximo de tentativas (ignorado no mock)
+            retry_delay_base: Delay base para retry (ignorado no mock)
+            retry_delay_max: Delay máximo para retry (ignorado no mock)
+            upload_timeout: Timeout para upload (ignorado no mock)
+            generation_timeout: Timeout para geração (ignorado no mock)
         """
         self.api_key = api_key
+        self.max_retries = max_retries
+        self.retry_delay_base = retry_delay_base
+        self.retry_delay_max = retry_delay_max
+        self.upload_timeout = upload_timeout
+        self.generation_timeout = generation_timeout
         logger.info("Usando MockGeminiClient para desenvolvimento/teste")
 
     def upload_file(self, file_path: str) -> str:

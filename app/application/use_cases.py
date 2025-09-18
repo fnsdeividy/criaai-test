@@ -42,7 +42,7 @@ class CreateProcessUseCase:
         self.downloader = downloader
         self.tmp_dir = tmp_dir
 
-    def execute(self, request: ExtractRequest) -> ExtractResponse:
+    async def execute(self, request: ExtractRequest) -> ExtractResponse:
         """
         Executa o fluxo completo de extração de processo.
         
@@ -86,7 +86,7 @@ class CreateProcessUseCase:
         try:
             # 1. Download do PDF
             logger.info(f"Fazendo download do PDF: {pdf_url}")
-            self.downloader.download_pdf(pdf_url, pdf_file_path)
+            await self.downloader.download_pdf(pdf_url, pdf_file_path)
             
             # 2. Extração com LLM
             logger.info("Extraindo dados com LLM")

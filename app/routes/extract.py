@@ -38,7 +38,7 @@ async def extract_process(
     try:
         logger.info(f"Recebida requisição de extração para caso: {request.case_id}")
         
-        result = use_case.execute(request)
+        result = await use_case.execute(request)
         
         logger.info(f"Extração concluída com sucesso para caso: {request.case_id}")
         return result

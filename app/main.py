@@ -37,6 +37,11 @@ request_counts = {}
 
 async def rate_limit_middleware(request: Request, call_next):
     """Middleware simples de rate limiting."""
+    # Pular rate limiting para requisições OPTIONS (CORS preflight)
+    if request.method == "OPTIONS":
+        response = await call_next(request)
+        return response
+    
     client_ip = request.client.host
     current_time = time.time()
     
@@ -46,8 +51,9 @@ async def rate_limit_middleware(request: Request, call_next):
         if current_time - timestamp < 60
     ]
     
-    # Verificar limite
-    if len(request_counts.get(client_ip, [])) >= settings.rate_limit_requests:
+    # Verificar limite (mais permissivo em desenvolvimento)
+    max_requests = settings.rate_limit_requests if not settings.log_level == "DEBUG" else 1000
+    if len(request_counts.get(client_ip, [])) >= max_requests:
         return JSONResponse(
             status_code=429,
             content={"detail": "Rate limit exceeded. Try again later."}
@@ -69,7 +75,8 @@ app = FastAPI(
     version=settings.api_version,
     lifespan=lifespan,
     docs_url="/docs" if settings.log_level == "DEBUG" else None,  # Docs apenas em debug
-    redoc_url="/redoc" if settings.log_level == "DEBUG" else None
+    redoc_url="/redoc" if settings.log_level == "DEBUG" else None,
+    timeout=settings.api_timeout  # Timeout configurável
 )
 
 # Middleware de segurança
@@ -81,10 +88,10 @@ app.middleware("http")(rate_limit_middleware)
 # Configurar CORS com restrições
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.allowed_origins,  # Apenas origens específicas
+    allow_origins=settings.allowed_origins + ["http://localhost:8081"],  # Incluir porta do Vite
     allow_credentials=True,
-    allow_methods=["GET", "POST"],  # Apenas métodos necessários
-    allow_headers=["Content-Type", "Authorization"],  # Headers específicos
+    allow_methods=["GET", "POST", "OPTIONS"],  # Incluir OPTIONS para preflight
+    allow_headers=["Content-Type", "Authorization", "X-Requested-With"],  # Headers necessários
     max_age=3600,  # Cache preflight por 1 hora
 )
 

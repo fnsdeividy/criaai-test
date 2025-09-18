@@ -108,11 +108,12 @@ class ApiClient {
   }
 
   /**
-   * Cria um AbortController com timeout
+   * Cria um AbortController com timeout específico
    */
-  private createAbortController(): AbortController {
+  private createAbortController(customTimeout?: number): AbortController {
     const controller = new AbortController();
-    setTimeout(() => controller.abort(), this.timeout);
+    const timeoutMs = customTimeout || this.timeout;
+    setTimeout(() => controller.abort(), timeoutMs);
     return controller;
   }
 
@@ -132,7 +133,7 @@ class ApiClient {
     }
 
     return this.executeWithRetry<ProcessData>(() => {
-      const controller = this.createAbortController();
+      const controller = this.createAbortController(API_CONFIG.TIMEOUT_UPLOAD);
 
       return fetch(`${this.baseUrl}/extract`, {
         method: "POST",
@@ -144,7 +145,41 @@ class ApiClient {
   }
 
   /**
-   * Processa PDF via upload
+   * Inicia upload assíncrono
+   */
+  async startAsyncUpload(request: UploadRequest): Promise<ApiResponse<{ task_id: string }>> {
+    const formData = new FormData();
+    formData.append("file", request.file);
+    formData.append("case_id", request.case_id);
+
+    return this.executeWithRetry(() => {
+      const controller = this.createAbortController();
+
+      return fetch(`${this.baseUrl}/upload/async`, {
+        method: "POST",
+        body: formData,
+        signal: controller.signal,
+      });
+    });
+  }
+
+  /**
+   * Verifica status de uma tarefa
+   */
+  async getTaskStatus(taskId: string): Promise<ApiResponse<any>> {
+    return this.executeWithRetry(() => {
+      const controller = this.createAbortController();
+
+      return fetch(`${this.baseUrl}/upload/status/${encodeURIComponent(taskId)}`, {
+        method: "GET",
+        headers: createSecureHeaders(),
+        signal: controller.signal,
+      });
+    });
+  }
+
+  /**
+   * Processa PDF via upload (mantido para compatibilidade)
    */
   async extractFromUpload(
     request: UploadRequest,
@@ -167,7 +202,7 @@ class ApiClient {
         });
       }
 
-      xhr.timeout = this.timeout;
+      xhr.timeout = API_CONFIG.TIMEOUT_UPLOAD; // Usar timeout específico para upload
 
       xhr.addEventListener("load", () => {
         try {
@@ -234,7 +269,7 @@ class ApiClient {
    */
   async getProcess(caseId: string): Promise<ApiResponse<ProcessData>> {
     return this.executeWithRetry<ProcessData>(() => {
-      const controller = this.createAbortController();
+      const controller = this.createAbortController(API_CONFIG.TIMEOUT_SHORT);
 
       return fetch(`${this.baseUrl}/extract/${encodeURIComponent(caseId)}`, {
         method: "GET",
@@ -249,7 +284,7 @@ class ApiClient {
    */
   async healthCheck(): Promise<ApiResponse<{ status: string; version: string }>> {
     return this.executeWithRetry(() => {
-      const controller = this.createAbortController();
+      const controller = this.createAbortController(API_CONFIG.TIMEOUT_HEALTH);
 
       return fetch(`${this.baseUrl}/health`, {
         method: "GET",

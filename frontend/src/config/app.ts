@@ -5,7 +5,10 @@
 // Configurações da API
 export const API_CONFIG = {
   BASE_URL: import.meta.env.VITE_API_BASE_URL || "http://localhost:8000",
-  TIMEOUT: 30000, // 30 segundos
+  TIMEOUT: 1800000, // 30 minutos (1800000ms) para arquivos grandes
+  TIMEOUT_SHORT: 30000, // 30 segundos para operações rápidas
+  TIMEOUT_UPLOAD: 1800000, // 30 minutos para uploads
+  TIMEOUT_HEALTH: 5000, // 5 segundos para health check
   RETRY_ATTEMPTS: 3,
   RETRY_DELAY: 1000, // 1 segundo
 } as const;

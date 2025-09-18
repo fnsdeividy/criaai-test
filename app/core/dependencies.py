@@ -35,7 +35,14 @@ def get_gemini_client() -> GeminiClient:
         return MockGeminiClient(api_key=settings.gemini_api_key)
     else:
         logger.info("Inicializando cliente Gemini real")
-        return GeminiClient(settings.gemini_api_key)
+        return GeminiClient(
+            api_key=settings.gemini_api_key,
+            max_retries=settings.max_retries,
+            retry_delay_base=settings.retry_delay_base,
+            retry_delay_max=settings.retry_delay_max,
+            upload_timeout=settings.gemini_upload_timeout,
+            generation_timeout=settings.gemini_generation_timeout
+        )
 
 
 @lru_cache()

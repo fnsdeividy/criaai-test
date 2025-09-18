@@ -33,6 +33,72 @@ class Settings(BaseSettings):
         description="Timeout em segundos para download de arquivos"
     )
     
+    # LLM Processing Timeout
+    llm_timeout: int = Field(
+        default=600,  # 10 minutos para arquivos grandes
+        env="LLM_TIMEOUT",
+        description="Timeout em segundos para processamento LLM"
+    )
+    
+    # API Request Timeout
+    api_timeout: int = Field(
+        default=1200,  # 20 minutos para arquivos grandes
+        env="API_TIMEOUT", 
+        description="Timeout em segundos para requisições da API"
+    )
+    
+    # Upload Timeout
+    upload_timeout: int = Field(
+        default=300,  # 5 minutos para upload
+        env="UPLOAD_TIMEOUT",
+        description="Timeout em segundos para upload de arquivos"
+    )
+    
+    # Retry Configuration
+    max_retries: int = Field(
+        default=3,
+        env="MAX_RETRIES",
+        description="Número máximo de tentativas para operações que falham"
+    )
+    
+    retry_delay_base: float = Field(
+        default=1.0,
+        env="RETRY_DELAY_BASE",
+        description="Delay base em segundos para retry (exponential backoff)"
+    )
+    
+    retry_delay_max: float = Field(
+        default=60.0,
+        env="RETRY_DELAY_MAX",
+        description="Delay máximo em segundos para retry"
+    )
+    
+    # Gemini API Timeout Configuration
+    gemini_upload_timeout: int = Field(
+        default=600,  # 10 minutos para upload de arquivos grandes
+        env="GEMINI_UPLOAD_TIMEOUT",
+        description="Timeout em segundos para upload de arquivos para Gemini"
+    )
+    
+    gemini_generation_timeout: int = Field(
+        default=900,  # 15 minutos para geração de arquivos grandes
+        env="GEMINI_GENERATION_TIMEOUT",
+        description="Timeout em segundos para geração de conteúdo"
+    )
+    
+    # PDF Validation Configuration
+    validate_pdf_structure: bool = Field(
+        default=True,
+        env="VALIDATE_PDF_STRUCTURE",
+        description="Se deve validar a estrutura do PDF antes do upload"
+    )
+    
+    max_pdf_pages: int = Field(
+        default=500,
+        env="MAX_PDF_PAGES",
+        description="Número máximo de páginas permitidas em um PDF"
+    )
+    
     # File Upload Configuration
     max_file_size_mb: int = Field(
         default=14,
@@ -55,7 +121,7 @@ class Settings(BaseSettings):
     
     # Logging Configuration
     log_level: str = Field(
-        default="INFO",
+        default="DEBUG",
         env="LOG_LEVEL",
         description="Nível de log (DEBUG, INFO, WARNING, ERROR, CRITICAL)"
     )
