@@ -38,15 +38,25 @@ class SqlAlchemyProcessRepository(IProcessRepository):
         Raises:
             RepositoryError: Se falhar na persistência
         """
+        logger.info(f"🔍 SqlAlchemyProcessRepository.persist_extraction chamado para caso {case_id}")
         session: Session = self.db_manager.get_session()
+        
+        if session is None:
+            logger.error(f"❌ Sessão do banco é None - usando MockDatabaseManager?")
+            raise RepositoryError("Sessão do banco de dados não disponível")
+            
+        logger.info(f"✅ Sessão do banco obtida com sucesso")
+        
         try:
             # Verificar se já existe
+            logger.info(f"🔍 Verificando se processo {case_id} já existe...")
             existing = session.query(ProcessExtraction).filter_by(case_id=case_id).first()
             if existing:
-                logger.info(f"Processo {case_id} já existe, pulando persistência")
+                logger.info(f"⚠️ Processo {case_id} já existe, pulando persistência")
                 return
             
             # Criar novo registro
+            logger.info(f"🆕 Criando novo registro para processo {case_id}")
             extraction = ProcessExtraction(
                 case_id=case_id,
                 resume=payload["resume"],
@@ -55,9 +65,11 @@ class SqlAlchemyProcessRepository(IProcessRepository):
                 persisted_at=payload.get("persisted_at", datetime.utcnow())
             )
             
+            logger.info(f"💾 Adicionando registro à sessão...")
             session.add(extraction)
+            logger.info(f"🔄 Fazendo commit da transação...")
             session.commit()
-            logger.info(f"Processo {case_id} persistido com sucesso")
+            logger.info(f"✅ Processo {case_id} persistido com sucesso no banco!")
             
         except IntegrityError as e:
             session.rollback()

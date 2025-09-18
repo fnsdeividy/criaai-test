@@ -234,7 +234,12 @@ class CreateProcessFromUploadUseCase:
                 "evidence": [item.model_dump() for item in process_data.evidence],
                 "persisted_at": process_data.persisted_at
             }
+            logger.info(f"💾 Tentando persistir dados para caso {process_data.case_id}")
+            logger.info(f"🗄️ Tipo do repositório: {type(self.repository).__name__}")
+            logger.info(f"📋 Payload: resume={len(payload['resume'])} chars, timeline={len(payload['timeline'])} items, evidence={len(payload['evidence'])} items")
+            
             self.repository.persist_extraction(process_data.case_id, payload)
+            logger.info(f"✅ Dados persistidos com sucesso para caso {process_data.case_id}")
             
             # Retornar resposta
             saved_data = ExtractResponse(

@@ -559,7 +559,10 @@ async def _process_saved_file(
         task_manager.update_task(task_id, progress=50, message="Processando com IA...")
         
         # Processar usando o use case fornecido
+        logger.info(f"🔄 Iniciando processamento com use case para caso {case_id}")
         result = await _process_upload(temp_file_path, case_id, use_case)
+        logger.info(f"✅ Processamento concluído para caso {case_id}")
+        logger.info(f"📊 Dados persistidos: {bool(result.persisted_at)}")
         
         # Concluir
         task_manager.complete_task(task_id, result.model_dump())
