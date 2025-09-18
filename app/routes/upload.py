@@ -59,13 +59,13 @@ async def extract_from_upload(
                 detail="Apenas arquivos PDF são aceitos"
             )
         
-        # Validar tamanho do arquivo (máximo 10MB)
-        max_size = 10 * 1024 * 1024  # 10MB
+        # Validar tamanho do arquivo (máximo 14MB)
+        max_size = 14 * 1024 * 1024  # 14MB
         contents = await file.read()
         if len(contents) > max_size:
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail="Arquivo muito grande. Máximo permitido: 10MB"
+                detail="Arquivo muito grande. Máximo permitido: 14MB"
             )
         
         # Gerar case_id se não fornecido

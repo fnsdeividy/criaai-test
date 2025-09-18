@@ -203,7 +203,7 @@ const PDFProcessor = () => {
                           <p className="mb-2 text-sm text-foreground-muted font-lato">
                             <span className="font-semibold">Clique para enviar</span> ou arraste o arquivo
                           </p>
-                          <p className="text-xs text-foreground-muted">PDF (MAX. 10MB)</p>
+                          <p className="text-xs text-foreground-muted">PDF (MAX. 14MB)</p>
                         </div>
                         <input
                           id="pdf-file"
