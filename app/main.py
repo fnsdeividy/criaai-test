@@ -201,6 +201,48 @@ async def create_tables():
         }
 
 
+@app.post("/test-extract", tags=["debug"])
+async def test_extract():
+    """Testa o fluxo completo de extração step by step."""
+    from app.core.dependencies import get_create_process_use_case
+    from app.application.dtos import ExtractRequest
+    from pydantic import HttpUrl
+    
+    try:
+        # 1. Testar use case
+        use_case = get_create_process_use_case()
+        
+        # 2. Criar request de teste
+        test_request = ExtractRequest(
+            pdf_url=HttpUrl("https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf"),
+            case_id="debug_test_case"
+        )
+        
+        # 3. Executar (com timeout curto para debug)
+        result = await use_case.execute(test_request)
+        
+        return {
+            "success": True,
+            "use_case_type": str(type(use_case).__name__),
+            "result": {
+                "case_id": result.case_id,
+                "resume_length": len(result.resume) if result.resume else 0,
+                "timeline_count": len(result.timeline) if result.timeline else 0,
+                "evidence_count": len(result.evidence) if result.evidence else 0,
+                "persisted_at": str(result.persisted_at) if result.persisted_at else None
+            }
+        }
+        
+    except Exception as e:
+        import traceback
+        return {
+            "success": False,
+            "error": str(e),
+            "error_type": str(type(e).__name__),
+            "traceback": traceback.format_exc()
+        }
+
+
 @app.post("/test-persist", tags=["debug"])
 async def test_persist():
     """Testa persistência diretamente no banco."""
