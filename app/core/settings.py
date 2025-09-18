@@ -33,6 +33,26 @@ class Settings(BaseSettings):
         description="Timeout em segundos para download de arquivos"
     )
     
+    # File Upload Configuration
+    max_file_size_mb: int = Field(
+        default=14,
+        env="MAX_FILE_SIZE_MB",
+        description="Tamanho máximo de arquivo em MB"
+    )
+    
+    # Security Configuration
+    allowed_origins: list[str] = Field(
+        default=["http://localhost:3000", "http://localhost:8080"],
+        env="ALLOWED_ORIGINS",
+        description="Origens permitidas para CORS"
+    )
+    
+    rate_limit_requests: int = Field(
+        default=100,
+        env="RATE_LIMIT_REQUESTS",
+        description="Número máximo de requests por minuto"
+    )
+    
     # Logging Configuration
     log_level: str = Field(
         default="INFO",

@@ -24,7 +24,7 @@ class HttpDownloader:
         """
         self.timeout = timeout
 
-    def download_pdf(self, url: str, output_path: str) -> str:
+    async def download_pdf(self, url: str, output_path: str) -> str:
         """
         Baixa um PDF de uma URL.
         
@@ -44,8 +44,8 @@ class HttpDownloader:
             # Criar diretório se não existir
             Path(output_path).parent.mkdir(parents=True, exist_ok=True)
             
-            with httpx.Client(timeout=self.timeout) as client:
-                response = client.get(url)
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                response = await client.get(url)
                 response.raise_for_status()
                 
                 # Verificar se é PDF

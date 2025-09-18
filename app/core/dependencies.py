@@ -64,8 +64,9 @@ def get_process_service() -> ProcessService:
     return ProcessService()
 
 
+@lru_cache()
 def get_create_process_use_case() -> CreateProcessUseCase:
-    """Retorna instância do use case de criação de processo."""
+    """Retorna instância singleton do use case de criação de processo."""
     return CreateProcessUseCase(
         repository=get_process_repository(),
         llm_service=get_llm_service(),
@@ -75,15 +76,17 @@ def get_create_process_use_case() -> CreateProcessUseCase:
     )
 
 
+@lru_cache()
 def get_get_process_use_case() -> GetProcessUseCase:
-    """Retorna instância do use case de consulta de processo."""
+    """Retorna instância singleton do use case de consulta de processo."""
     return GetProcessUseCase(
         repository=get_process_repository()
     )
 
 
+@lru_cache()
 def get_create_process_from_upload_use_case() -> CreateProcessFromUploadUseCase:
-    """Retorna instância do use case de upload de processo."""
+    """Retorna instância singleton do use case de upload de processo."""
     return CreateProcessFromUploadUseCase(
         llm_service=get_llm_service(),
         process_service=get_process_service(),

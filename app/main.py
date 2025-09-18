@@ -3,8 +3,11 @@ Ponto de entrada da aplicação FastAPI.
 """
 import logging
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
+from fastapi.responses import JSONResponse
+import time
 
 from app.core.settings import settings
 from app.core.logging_config import setup_logging
@@ -29,21 +32,60 @@ async def lifespan(app: FastAPI):
     logger.info("Encerrando aplicação Process Extraction API")
 
 
+# Rate limiting simples em memória
+request_counts = {}
+
+async def rate_limit_middleware(request: Request, call_next):
+    """Middleware simples de rate limiting."""
+    client_ip = request.client.host
+    current_time = time.time()
+    
+    # Limpar contadores antigos (mais de 1 minuto)
+    request_counts[client_ip] = [
+        timestamp for timestamp in request_counts.get(client_ip, [])
+        if current_time - timestamp < 60
+    ]
+    
+    # Verificar limite
+    if len(request_counts.get(client_ip, [])) >= settings.rate_limit_requests:
+        return JSONResponse(
+            status_code=429,
+            content={"detail": "Rate limit exceeded. Try again later."}
+        )
+    
+    # Adicionar timestamp atual
+    if client_ip not in request_counts:
+        request_counts[client_ip] = []
+    request_counts[client_ip].append(current_time)
+    
+    response = await call_next(request)
+    return response
+
+
 # Criar aplicação FastAPI
 app = FastAPI(
     title=settings.api_title,
     description=settings.api_description,
     version=settings.api_version,
-    lifespan=lifespan
+    lifespan=lifespan,
+    docs_url="/docs" if settings.log_level == "DEBUG" else None,  # Docs apenas em debug
+    redoc_url="/redoc" if settings.log_level == "DEBUG" else None
 )
 
-# Configurar CORS
+# Middleware de segurança
+app.add_middleware(TrustedHostMiddleware, allowed_hosts=["*"])  # Em produção, especificar hosts
+
+# Rate limiting
+app.middleware("http")(rate_limit_middleware)
+
+# Configurar CORS com restrições
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Em produção, especificar domínios específicos
+    allow_origins=settings.allowed_origins,  # Apenas origens específicas
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST"],  # Apenas métodos necessários
+    allow_headers=["Content-Type", "Authorization"],  # Headers específicos
+    max_age=3600,  # Cache preflight por 1 hora
 )
 
 # Registrar routers
