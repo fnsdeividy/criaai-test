@@ -4,6 +4,13 @@ Configuração e modelos do banco de dados.
 import json
 from datetime import datetime
 from typing import Dict, Any, Optional
+
+# Import psycopg2 to ensure PostgreSQL dialect is available for SQLAlchemy
+try:
+    import psycopg2  # noqa: F401
+except ImportError:
+    pass  # psycopg2 not available, will fall back to mock
+
 from sqlalchemy import create_engine, Column, Integer, String, Text, DateTime
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
@@ -36,14 +43,18 @@ class ProcessExtraction(Base):
 
 class DatabaseManager:
     """Gerenciador do banco de dados."""
-    
+
     def __init__(self, database_url: str):
         """
         Inicializa o gerenciador.
-        
+
         Args:
             database_url: URL de conexão com o banco
         """
+        # Convert postgres:// to postgresql:// for SQLAlchemy compatibility
+        if database_url.startswith("postgres://"):
+            database_url = database_url.replace("postgres://", "postgresql://", 1)
+
         self.engine = create_engine(database_url)
         self.SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=self.engine)
         

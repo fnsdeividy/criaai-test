@@ -1,10 +1,11 @@
 .PHONY: install run test lint clean help setup-db docker-up docker-down frontend-install frontend-dev frontend-build dev
 
 # Variáveis
-PYTHON = python3
-PIP = pip3
-UVICORN = uvicorn
-PYTEST = pytest
+VENV = venv
+PYTHON = $(VENV)/bin/python3
+PIP = $(VENV)/bin/pip3
+UVICORN = $(VENV)/bin/uvicorn
+PYTEST = $(VENV)/bin/pytest
 
 # Ajuda
 help:
@@ -33,6 +34,11 @@ help:
 
 # Instalação
 install:
+	@echo "Criando/verificando virtual environment..."
+	@if [ ! -d "$(VENV)" ]; then \
+		python3 -m venv $(VENV); \
+		echo "Virtual environment criado em $(VENV)"; \
+	fi
 	@echo "Instalando dependências..."
 	$(PIP) install -r requirements.txt
 
@@ -159,6 +165,10 @@ setup:
 	make frontend-install
 	@echo ""
 	@echo "Configuração concluída!"
+	@echo "IMPORTANTE: O projeto agora usa virtual environment!"
+	@echo "Para executar comandos, use 'make <comando>' ou ative o venv manualmente:"
+	@echo "  source venv/bin/activate"
+	@echo ""
 	@echo "Opções para PostgreSQL:"
 	@echo "  A) Docker: make docker-up && make setup-db"
 	@echo "  B) Local:  make install-pg && make setup-db"
@@ -181,7 +191,12 @@ check:
 	else \
 		echo "✓ GEMINI_API_KEY configurado"; \
 	fi
-	@$(PYTHON) -c "import app.main" 2>/dev/null && echo "✓ Aplicação pode ser importada" || echo "✗ Erro na importação da aplicação"
+	@if [ -d "$(VENV)" ]; then \
+		echo "✓ Virtual environment encontrado"; \
+		$(PYTHON) -c "import app.main" 2>/dev/null && echo "✓ Aplicação pode ser importada" || echo "✗ Erro na importação da aplicação"; \
+	else \
+		echo "✗ Virtual environment não encontrado (execute: make install)"; \
+	fi
 
 # Executar exemplo de teste
 demo:
@@ -190,6 +205,6 @@ demo:
 	@$(UVICORN) app.main:app --host 0.0.0.0 --port 8000 &
 	@sleep 3
 	@echo "Testando health check..."
-	@curl -s http://localhost:8000/health | python3 -m json.tool || echo "Erro no health check"
+	@curl -s http://localhost:8000/health | $(PYTHON) -m json.tool || echo "Erro no health check"
 	@echo "Parando servidor..."
-	@pkill -f "uvicorn app.main:app" 2>/dev/null || true
+	@pkill -f "$(UVICORN) app.main:app" 2>/dev/null || true
