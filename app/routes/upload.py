@@ -329,7 +329,7 @@ async def extract_from_upload(
     - Cleanup garantido de arquivos temporários
     
     Args:
-        file: Arquivo PDF enviado (máx. 14MB)
+        file: Arquivo PDF enviado (máx. 4MB)
         case_id: ID único do processo (opcional, será gerado se não fornecido)
         use_case: Use case para processamento
         

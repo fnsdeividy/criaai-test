@@ -18,7 +18,7 @@ export const API_CONFIG = {
 
 // Configurações de upload
 export const UPLOAD_CONFIG = {
-  MAX_FILE_SIZE: Number(import.meta.env.VITE_MAX_FILE_SIZE) || (14 * 1024 * 1024), // 14MB em bytes
+  MAX_FILE_SIZE: Number(import.meta.env.VITE_MAX_FILE_SIZE) || (4 * 1024 * 1024), // 4MB em bytes
   ALLOWED_TYPES: (import.meta.env.VITE_ALLOWED_TYPES?.split(',') as readonly string[]) || ["application/pdf"] as const,
   ALLOWED_EXTENSIONS: (import.meta.env.VITE_ALLOWED_EXTENSIONS?.split(',') as readonly string[]) || [".pdf"] as const,
 } as const;

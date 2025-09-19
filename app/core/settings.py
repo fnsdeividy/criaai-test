@@ -101,7 +101,7 @@ class Settings(BaseSettings):
     
     # File Upload Configuration
     max_file_size_mb: int = Field(
-        default=14,
+        default=4,
         env="MAX_FILE_SIZE_MB",
         description="Tamanho máximo de arquivo em MB"
     )
