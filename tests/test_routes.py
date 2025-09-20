@@ -1,7 +1,7 @@
 """
 Testes para as rotas da API.
 """
-from unittest.mock import patch, Mock
+from unittest.mock import patch, Mock, AsyncMock
 import pytest
 from fastapi import status
 
@@ -12,9 +12,11 @@ from app.core.exceptions import DownloadError, LlmError, RepositoryError
 class TestExtractRoutes:
     """Testes para rotas de extração."""
 
-    def test_post_extract_success(self, test_client, sample_extract_request):
+    def test_post_extract_success(self, test_client, mock_create_use_case, sample_extract_request):
         """Testa POST /extract com sucesso."""
-        # Mock do use case
+        from app.application.dtos import ExtractResponse
+
+        # Configurar o mock do use case
         mock_response = ExtractResponse(
             case_id=sample_extract_request["case_id"],
             resume="Resumo do processo de teste",
@@ -22,15 +24,13 @@ class TestExtractRoutes:
             evidence=[],
             persisted_at="2024-08-28T12:00:00Z"
         )
-        
-        with patch("app.core.dependencies.get_create_process_use_case") as mock_get_use_case:
-            mock_use_case = Mock()
-            mock_use_case.execute.return_value = mock_response
-            mock_get_use_case.return_value = mock_use_case
-            
+        mock_create_use_case.execute.return_value = mock_response
+
+        # Aplicar patch no módulo da rota
+        with patch("app.routes.extract.get_create_process_use_case", return_value=mock_create_use_case):
             # Act
             response = test_client.post("/extract", json=sample_extract_request)
-            
+
             # Assert
             assert response.status_code == status.HTTP_200_OK
             data = response.json()
@@ -65,47 +65,46 @@ class TestExtractRoutes:
             assert response.status_code == status.HTTP_400_BAD_REQUEST
             assert "download" in response.json()["detail"].lower()
 
-    def test_post_extract_llm_error(self, test_client, sample_extract_request):
+    def test_post_extract_llm_error(self, test_client, mock_create_use_case, sample_extract_request):
         """Testa POST /extract com erro de LLM."""
-        with patch("app.core.dependencies.get_create_process_use_case") as mock_get_use_case:
-            mock_use_case = Mock()
-            mock_use_case.execute.side_effect = LlmError("Falha na IA")
-            mock_get_use_case.return_value = mock_use_case
-            
+        from app.core.exceptions import LlmError
+
+        # Configurar o mock do use case
+        mock_create_use_case.execute.side_effect = LlmError("Falha na IA")
+
+        with patch("app.routes.extract.get_create_process_use_case", return_value=mock_create_use_case):
             # Act
             response = test_client.post("/extract", json=sample_extract_request)
-            
+
             # Assert
             assert response.status_code == status.HTTP_502_BAD_GATEWAY
             assert "IA" in response.json()["detail"]
 
-    def test_post_extract_repository_error(self, test_client, sample_extract_request):
+    def test_post_extract_repository_error(self, test_client, mock_create_use_case, sample_extract_request):
         """Testa POST /extract com erro de repositório."""
-        with patch("app.core.dependencies.get_create_process_use_case") as mock_get_use_case:
-            mock_use_case = Mock()
-            mock_use_case.execute.side_effect = RepositoryError("Erro de DB")
-            mock_get_use_case.return_value = mock_use_case
-            
+        from app.core.exceptions import RepositoryError
+
+        # Configurar o mock do use case
+        mock_create_use_case.execute.side_effect = RepositoryError("Erro de DB")
+
+        with patch("app.routes.extract.get_create_process_use_case", return_value=mock_create_use_case):
             # Act
             response = test_client.post("/extract", json=sample_extract_request)
-            
+
             # Assert
             assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
 
-    def test_get_extract_success(self, test_client, existing_process_data):
+    def test_get_extract_success(self, test_client, mock_get_use_case, existing_process_data):
         """Testa GET /extract/{case_id} com sucesso."""
         case_id = existing_process_data["case_id"]
-        
+
         mock_response = ExtractResponse(**existing_process_data)
-        
-        with patch("app.core.dependencies.get_get_process_use_case") as mock_get_use_case:
-            mock_use_case = Mock()
-            mock_use_case.execute.return_value = mock_response
-            mock_get_use_case.return_value = mock_use_case
-            
+        mock_get_use_case.execute.return_value = mock_response
+
+        with patch("app.routes.extract.get_get_process_use_case", return_value=mock_get_use_case):
             # Act
             response = test_client.get(f"/extract/{case_id}")
-            
+
             # Assert
             assert response.status_code == status.HTTP_200_OK
             data = response.json()
@@ -126,18 +125,18 @@ class TestExtractRoutes:
             # Assert
             assert response.status_code == status.HTTP_404_NOT_FOUND
 
-    def test_get_extract_repository_error(self, test_client):
+    def test_get_extract_repository_error(self, test_client, mock_get_use_case):
         """Testa GET /extract/{case_id} com erro de repositório."""
+        from app.core.exceptions import RepositoryError
+
         case_id = "teste"
-        
-        with patch("app.core.dependencies.get_get_process_use_case") as mock_get_use_case:
-            mock_use_case = Mock()
-            mock_use_case.execute.side_effect = RepositoryError("Erro de DB")
-            mock_get_use_case.return_value = mock_use_case
-            
+
+        mock_get_use_case.execute.side_effect = RepositoryError("Erro de DB")
+
+        with patch("app.routes.extract.get_get_process_use_case", return_value=mock_get_use_case):
             # Act
             response = test_client.get(f"/extract/{case_id}")
-            
+
             # Assert
             assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
 

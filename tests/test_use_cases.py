@@ -17,10 +17,11 @@ from app.core.exceptions import DownloadError, LlmError, ValidationError
 class TestCreateProcessUseCase:
     """Testes para CreateProcessUseCase."""
 
-    def test_execute_success_happy_path(
-        self, 
-        mock_repository, 
-        mock_llm_client, 
+    @pytest.mark.asyncio
+    async def test_execute_success_happy_path(
+        self,
+        mock_repository,
+        mock_llm_client,
         sample_extract_request,
         sample_llm_extraction,
         temp_pdf_file
@@ -45,7 +46,7 @@ class TestCreateProcessUseCase:
             request = ExtractRequest(**sample_extract_request)
             
             # Act
-            result = use_case.execute(request)
+            result = await use_case.execute(request)
             
             # Assert
             assert result.case_id == request.case_id
@@ -58,10 +59,11 @@ class TestCreateProcessUseCase:
             downloader.download_pdf.assert_called_once()
             mock_repository.persist_extraction.assert_called_once()
 
-    def test_execute_idempotency_existing_case(
-        self, 
-        mock_repository, 
-        mock_llm_client, 
+    @pytest.mark.asyncio
+    async def test_execute_idempotency_existing_case(
+        self,
+        mock_repository,
+        mock_llm_client,
         sample_extract_request,
         existing_process_data
     ):
@@ -83,7 +85,7 @@ class TestCreateProcessUseCase:
         request = ExtractRequest(**sample_extract_request)
         
         # Act
-        result = use_case.execute(request)
+        result = await use_case.execute(request)
         
         # Assert
         assert result.case_id == existing_process_data["case_id"]
@@ -93,10 +95,11 @@ class TestCreateProcessUseCase:
         downloader.download_pdf.assert_not_called()
         mock_repository.persist_extraction.assert_not_called()
 
-    def test_execute_download_failure(
-        self, 
-        mock_repository, 
-        mock_llm_client, 
+    @pytest.mark.asyncio
+    async def test_execute_download_failure(
+        self,
+        mock_repository,
+        mock_llm_client,
         sample_extract_request
     ):
         """Testa falha no download do PDF."""
@@ -117,12 +120,13 @@ class TestCreateProcessUseCase:
         
         # Act & Assert
         with pytest.raises(DownloadError):
-            use_case.execute(request)
+            await use_case.execute(request)
 
-    def test_execute_llm_failure_retry_success(
-        self, 
-        mock_repository, 
-        mock_llm_client, 
+    @pytest.mark.asyncio
+    async def test_execute_llm_failure_retry_success(
+        self,
+        mock_repository,
+        mock_llm_client,
         sample_extract_request,
         sample_llm_extraction,
         temp_pdf_file
@@ -151,7 +155,7 @@ class TestCreateProcessUseCase:
             # Act - primeira chamada falha, mas o use case não tem retry automático
             # Neste caso, a falha será propagada
             with pytest.raises(LlmError):
-                use_case.execute(request)
+                await use_case.execute(request)
 
     def test_execute_invalid_case_id(
         self, 
@@ -174,7 +178,7 @@ class TestCreateProcessUseCase:
         # Testar se a validação ocorre na criação do DTO
         with pytest.raises(Exception):  # Pydantic ValidationError
             ExtractRequest(
-                pdf_url="https://exemplo.com/processo.pdf",
+                pdf_url="https://www.orimi.com/pdf-test.pdf?utm_source=chatgpt.com",
                 case_id=""  # case_id vazio
             )
 

@@ -19,17 +19,36 @@ def test_client():
     # Limpar cache das dependências para testes
     from app.core.dependencies import (
         get_database_manager, get_gemini_client, get_http_downloader,
-        get_process_repository, get_llm_service, get_process_service
+        get_process_repository, get_llm_service, get_process_service,
+        get_create_process_use_case, get_get_process_use_case,
+        get_create_process_from_upload_use_case
     )
-    
+
     get_database_manager.cache_clear()
     get_gemini_client.cache_clear()
     get_http_downloader.cache_clear()
     get_process_repository.cache_clear()
     get_llm_service.cache_clear()
     get_process_service.cache_clear()
-    
+    get_create_process_use_case.cache_clear()
+    get_get_process_use_case.cache_clear()
+    get_create_process_from_upload_use_case.cache_clear()
+
     return TestClient(app)
+
+
+@pytest.fixture
+def mock_create_use_case():
+    """Mock do use case de criação."""
+    from unittest.mock import AsyncMock
+    return AsyncMock()
+
+
+@pytest.fixture
+def mock_get_use_case():
+    """Mock do use case de consulta."""
+    from unittest.mock import Mock
+    return Mock()
 
 
 @pytest.fixture
@@ -74,7 +93,7 @@ def mock_repository():
 def sample_extract_request():
     """Requisição de extração de exemplo."""
     return {
-        "pdf_url": "https://exemplo.com/processo.pdf",
+        "pdf_url": "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
         "case_id": "0809090-86.2024.8.12.0021"
     }
 
